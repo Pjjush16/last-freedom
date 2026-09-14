@@ -2,217 +2,946 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>最后的自由</title>
+<title>最后的自由 - Linux版</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Microsoft YaHei', sans-serif; background: #000; color: #fff; overflow: hidden; user-select: none; -webkit-user-select: none; }
-canvas#map { display: block; width: 100vw; height: 100vh; touch-action: none; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: #000; color: #fff; overflow: hidden; user-select: none; }
+canvas#map { display: block; cursor: grab; }
+canvas#map:active { cursor: grabbing; }
 
-#top-bar { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; z-index: 20; padding: 8px 12px; pointer-events: none; }
-#watermark { background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 4px; font-size: 11px; color: #aaa; }
-#road-name { background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 4px; font-size: 13px; color: #fff; font-weight: bold; text-align: center; max-width: 60%; }
+/* === HUD OVERLAY - 1:1 matching B站 video screenshot === */
 
-#speed-gauge { position: fixed; top: 50px; right: 15px; z-index: 20; pointer-events: none; }
-#speed-circle { width: 80px; height: 80px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 3px solid rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-#speed-value { font-size: 28px; font-weight: bold; color: #fff; line-height: 1; font-family: 'Arial Black', sans-serif; }
-#speed-unit { font-size: 10px; color: #aaa; margin-top: 2px; }
+/* Top info bar: opaque white strip matching video */
+#top-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  z-index: 20;
+  background: #fff;
+  padding: 8px 16px;
+  min-height: 54px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+#road-info-wrap {
+  display: flex; flex-direction: column;
+  justify-content: center;
+}
+#road-name {
+  font-size: 15px; color: #222;
+  font-weight: normal;
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+#road-location {
+  display: inline-block;
+  background: #0057b8;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  margin-top: 3px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  width: fit-content;
+}
+#speed-gauge {
+  background: #0057b8;
+  color: #fff;
+  padding: 4px 16px;
+  border-radius: 3px;
+  display: flex; align-items: baseline; gap: 4px;
+  min-width: 90px; justify-content: center;
+  height: 30px;
+  line-height: 22px;
+}
+#speed-value {
+  font-size: 24px; font-weight: bold;
+  color: #fff; line-height: 1;
+  font-family: Arial, Helvetica, sans-serif;
+}
+#speed-unit {
+  font-size: 13px; color: #fff;
+  font-weight: bold;
+}
 
-#subtitle-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; padding: 8px 20px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); text-align: center; pointer-events: none; }
-#subtitle-text { font-size: 16px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); font-weight: bold; }
+/* Yellow-black watermark box (below top bar) */
+#watermark {
+  position: fixed; top: 62px; left: 12px;
+  z-index: 20;
+  background: rgba(255, 200, 0, 0.92);
+  border: 2px solid #222;
+  padding: 5px 12px;
+  border-radius: 3px;
+  pointer-events: none;
+  line-height: 1.4;
+}
+#watermark .wm-title {
+  font-size: 13px; font-weight: bold; color: #111;
+  display: block;
+}
+#watermark .wm-sub {
+  font-size: 9px; color: #333;
+  display: block;
+}
+#watermark .wm-bili {
+  font-size: 9px; color: #555;
+  display: block;
+  margin-top: 1px;
+}
 
-#sticker-left { position: fixed; bottom: 45px; left: 10px; z-index: 20; pointer-events: none; width: 70px; height: 70px; opacity: 0.9; }
-#sticker-right { position: fixed; bottom: 45px; right: 10px; z-index: 20; pointer-events: none; width: 70px; height: 85px; opacity: 0.9; }
-#sticker-left img, #sticker-right img { width: 100%; height: 100%; object-fit: contain; }
+/* Warning box */
+#warning-box {
+  position: fixed; top: 62px; right: 12px;
+  z-index: 20;
+  background: rgba(0,0,0,0.5);
+  padding: 3px 8px; border-radius: 3px;
+  font-size: 10px; color: #ccc;
+  pointer-events: none;
+}
 
-#warning-box { position: fixed; top: 8px; right: 105px; z-index: 20; background: rgba(255,200,0,0.15); border: 1px solid rgba(255,200,0,0.5); padding: 3px 8px; border-radius: 3px; font-size: 9px; color: #ffcc00; pointer-events: none; }
+/* Bottom subtitle - large, white with black outline like the video */
+#subtitle-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 20; padding: 0 20px 18px;
+  background: linear-gradient(transparent 0%, rgba(0,0,0,0.4) 100%);
+  text-align: center;
+  pointer-events: none;
+}
+#subtitle-text {
+  font-size: 28px; color: #fff;
+  font-weight: 900;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000,
+    -2px  2px 0 #000, 2px  2px 0 #000,
+     0   -2px 0 #000, 0    2px 0 #000,
+    -2px  0   0 #000, 2px  0   0 #000,
+     0 0 8px rgba(0,0,0,0.5);
+  letter-spacing: 2px;
+}
 
-#live-indicator { position: fixed; top: 45px; left: 12px; z-index: 20; background: #e00; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; color: #fff; animation: livePulse 2s infinite; pointer-events: none; }
-@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+/* Stickers - positioned to match video layout, above subtitle */
+#sticker-left {
+  position: fixed; bottom: 40px; left: 8px;
+  z-index: 25; pointer-events: none;
+  width: 160px; height: 140px;
+  opacity: 0.95;
+}
+#sticker-right {
+  position: fixed; bottom: 35px; right: 8px;
+  z-index: 25; pointer-events: none;
+  width: 140px; height: 170px;
+  opacity: 0.95;
+}
+#sticker-left img, #sticker-right img {
+  width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.6));
+}
+#live-indicator {
+  position: fixed; top: 84px; left: 12px;
+  z-index: 20;
+  background: #e00;
+  padding: 2px 8px; border-radius: 3px;
+  font-size: 11px; font-weight: bold;
+  color: #fff;
+  animation: livePulse 2s infinite;
+  pointer-events: none;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
 
-#game-overlay { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; text-align: center; pointer-events: none; }
+/* Game overlay (star clear / caught) */
+#game-overlay {
+  display: none;
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  text-align: center;
+  pointer-events: none;
+}
 #game-overlay.show { display: block; }
-#game-overlay h1 { font-size: 36px; font-weight: bold; text-shadow: 0 0 20px currentColor; animation: overlayPop 0.5s ease-out; }
-@keyframes overlayPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+#game-overlay h1 {
+  font-size: 48px; font-weight: bold;
+  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  animation: overlayPop 0.5s ease-out;
+}
+@keyframes overlayPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
-#star-rating { position: fixed; top: 100px; right: 15px; z-index: 20; pointer-events: none; font-size: 20px; }
+/* Debug panel (collapsible) */
+#debug-toggle {
+  position: fixed; bottom: 100px; right: 12px;
+  z-index: 25;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid #444;
+  color: #888; padding: 2px 6px;
+  border-radius: 3px; font-size: 10px;
+  cursor: pointer;
+}
+#debug-panel {
+  display: none;
+  position: fixed; top: 70px; right: 10px;
+  z-index: 25;
+  background: rgba(0,0,0,0.9);
+  padding: 10px; border-radius: 8px;
+  font-size: 11px; max-width: 280px;
+  border: 1px solid #333;
+}
+#debug-panel.show { display: block; }
+#debug-panel label { display: block; margin: 3px 0 1px; color: #888; }
+#debug-panel input, #debug-panel select {
+  width: 100%; padding: 3px; margin: 1px 0;
+  background: #1a1a2e; color: #ccc; border: 1px solid #333;
+  border-radius: 3px; font-size: 11px;
+}
+#debug-panel button {
+  width: 100%; padding: 6px; margin: 3px 0;
+  background: #333; color: #ccc; border: 1px solid #555;
+  border-radius: 3px; cursor: pointer; font-size: 11px;
+}
+#debug-panel button:hover { background: #444; }
+#debug-stats { font-family: monospace; color: #0f0; font-size: 10px; margin-top: 5px; }
+
+/* Star rating display */
+#star-rating {
+  position: fixed; top: 46px; right: 140px;
+  z-index: 20; pointer-events: none;
+  font-size: 20px;
+}
 .star { color: #333; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 .star.active { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
-
-#setup-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-#setup-screen h2 { color: #00BFFF; font-size: 22px; margin-bottom: 20px; }
-#setup-screen label { color: #aaa; font-size: 13px; margin-top: 10px; }
-#setup-screen input { width: 80%; max-width: 400px; padding: 10px; margin: 5px 0; background: #1a1a2e; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
-#setup-screen button { margin-top: 20px; padding: 12px 40px; background: #00BFFF; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
 </style>
 </head>
 <body>
-
-<div id="setup-screen">
-  <h2>最后的自由</h2>
-  <p style="color:#888;font-size:13px;margin-bottom:15px;">直升机俯拍追逐游戏</p>
-  <label>天地图Key（必填）:</label>
-  <input type="text" id="setup-key" placeholder="输入你的天地图Key" />
-  <label>初始城市:</label>
-  <input type="text" id="setup-city" value="洛杉矶" />
-  <button onclick="startGame()">开始游戏</button>
-  <p style="color:#555;font-size:11px;margin-top:20px;">双击地图设定终点 → 开始追逐</p>
-</div>
-
 <canvas id="map"></canvas>
 
+<!-- HUD Elements -->
 <div id="top-bar">
-  <div id="watermark">争取最后的自由 bilibili</div>
-  <div id="road-name">LOS ANGELES, CA</div>
+  <div id="road-info-wrap">
+    <div id="road-name">CA-210 E CARPOOL LANE [210], SUMNER</div>
+    <div id="road-location">LOCATION</div>
+  </div>
+  <div id="speed-gauge">
+    <div id="speed-value">0</div>
+    <div id="speed-unit">mph</div>
+  </div>
 </div>
-<div id="warning-box">剧情演绎 请勿模仿 | 固定机位 加速播放</div>
-<div id="speed-gauge"><div id="speed-circle"><div id="speed-value">0</div><div id="speed-unit">MPH</div></div></div>
-<div id="star-rating"><span class="star" id="star1">★</span><span class="star" id="star2">★</span><span class="star" id="star3">★</span><span class="star" id="star4">★</span><span class="star" id="star5">★</span><span class="star" id="star6">★</span><span class="star" id="star7">★</span></div>
+
+<div id="watermark">
+  <span class="wm-title">争取最后的自由</span>
+  <span class="wm-sub">固定机位 安全拍摄</span>
+  <span class="wm-bili">bilibili</span>
+</div>
+
+<div id="warning-box">剧情演绎 游戏画面 请勿模仿</div>
+
+<div id="star-rating">
+  <span class="star" id="star1">★</span>
+  <span class="star" id="star2">★</span>
+  <span class="star" id="star3">★</span>
+  <span class="star" id="star4">★</span>
+  <span class="star" id="star5">★</span>
+  <span class="star" id="star6">★</span>
+  <span class="star" id="star7">★</span>
+</div>
+
 <div id="live-indicator">● LIVE</div>
-<div id="sticker-left"><img id="sticker-left-img" src="stickers/bear_driver_raw.png" alt=""></div>
-<div id="sticker-right"><img id="sticker-right-img" src="stickers/anime_girl_raw.png" alt=""></div>
-<div id="subtitle-bar"><div id="subtitle-text">警灯一开，悠哉悠哉</div></div>
-<div id="game-overlay"><h1 id="overlay-text"></h1></div>
+
+<div id="sticker-left"><img id="sticker-left-img" src="" alt=""></div>
+<div id="sticker-right"><img id="sticker-right-img" src="" alt=""></div>
+
+<div id="subtitle-bar">
+  <div id="subtitle-text">警灯一开，悠哉悠哉</div>
+</div>
+
+<div id="game-overlay">
+  <h1 id="overlay-text"></h1>
+</div>
+
+<!-- Signal Loss Indicator -->
+<div id="signal-loss-indicator" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:35; text-align:center; pointer-events:none;">
+  <div style="font-size:24px; color:#ff4444; font-weight:bold; text-shadow:0 0 10px rgba(255,0,0,0.8); animation:signalBlink 0.5s infinite;">
+    ⚠ 信号丢失
+  </div>
+  <div id="signal-timer" style="font-size:48px; color:#ff6666; font-family:monospace; margin-top:10px;"></div>
+  <div style="font-size:14px; color:#aaa; margin-top:5px;">正在搜索目标位置...</div>
+</div>
+<style>
+@keyframes signalBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+</style>
+
+<!-- Debug toggle -->
+<div id="debug-toggle" onclick="toggleDebug()">⚙ 调试</div>
+<div id="debug-panel">
+  <label>天地图Key:</label>
+  <input type="text" id="key-input" value="YOUR_TIANDITU_KEY_HERE" />
+  <label>接口:</label>
+  <select id="endpoint">
+    <option value="wmts">WMTS标准</option>
+    <option value="dataserver">DataServer</option>
+  </select>
+  <label>图层:</label>
+  <select id="layer-type">
+    <option value="img">影像 (img)</option>
+    <option value="vec">矢量 (vec)</option>
+  </select>
+  <label>投影:</label>
+  <select id="proj">
+    <option value="w" selected>墨卡托 _w（推荐）</option>
+    <option value="c">经纬度 _c（zoom≤10）</option>
+  </select>
+  <label>缩放: <span id="zoom-label">15</span></label>
+  <input type="range" id="zoom-range" min="3" max="18" value="15" />
+  <button onclick="applySettings()">应用并重载</button>
+  <button onclick="testSingleTile()">测试单瓦片</button>
+  <div id="debug-stats">瓦片: OK=0 Fail=0 Load=0</div>
+</div>
 
 <script>
-// === CONFIG ===
-let TIANDITU_KEY = '';
+// === CHASE MUSIC ===
+const chaseMusic = [
+  new Audio('music/cmon.m4a'),
+  new Audio('music/she_makes_me_go.m4a')
+];
+chaseMusic.forEach(m => { m.loop = true; m.volume = 0.7; });
+let currentTrack = 0;
+let musicPlaying = false;
 
-// === STICKERS ===
+function startChaseMusic() {
+  if (musicPlaying) return;
+  currentTrack = 0;
+  chaseMusic[currentTrack].play().catch(e => console.log('Audio play failed:', e));
+  musicPlaying = true;
+  // Switch to next track when current one ends
+  chaseMusic.forEach((m, i) => {
+    m.onended = () => {
+      currentTrack = (i + 1) % chaseMusic.length;
+      chaseMusic[currentTrack].play().catch(e => {});
+    };
+  });
+}
+
+function stopChaseMusic() {
+  chaseMusic.forEach(m => { m.pause(); m.currentTime = 0; });
+  musicPlaying = false;
+}
+
+// === STICKER DATA (base64 embedded) ===
+const STICKERS = {
+  "bear_driver": "sticker/panda_driver_nobg.png",
+  "anime_girl": "sticker/anime_girl_nobg.png",
+  "anime_girl_variant": "sticker/anime_girl_variant_raw.png",
+  "panda_running": "sticker/panda_running_raw.png"
+};
+
+// === STICKER ROTATION ===
 const stickerSets = [
-  { left: 'stickers/bear_driver_raw.png', right: 'stickers/anime_girl_raw.png' },
-  { left: 'stickers/panda_running_raw.png', right: 'stickers/anime_girl_variant_raw.png' },
-  { left: 'stickers/bear_driver_raw.png', right: 'stickers/anime_girl_variant_raw.png' },
-  { left: 'stickers/panda_running_raw.png', right: 'stickers/anime_girl_raw.png' },
+  { left: 'bear_driver', right: 'anime_girl' },
+  { left: 'panda_running', right: 'anime_girl_variant' },
+  { left: 'bear_driver', right: 'anime_girl_variant' },
+  { left: 'panda_running', right: 'anime_girl' },
 ];
 let currentStickerSet = 0;
+
 function rotateStickers() {
   currentStickerSet = (currentStickerSet + 1) % stickerSets.length;
-  document.getElementById('sticker-left-img').src = stickerSets[currentStickerSet].left;
-  document.getElementById('sticker-right-img').src = stickerSets[currentStickerSet].right;
+  const set = stickerSets[currentStickerSet];
+  document.getElementById('sticker-left-img').src = STICKERS[set.left] || '';
+  document.getElementById('sticker-right-img').src = STICKERS[set.right] || '';
 }
-setInterval(rotateStickers, 30000);
 
-// === CAPTIONS ===
-const captions = ["警灯一开，悠哉悠哉","赶快去拿纸，蹲下就开始","全速怕什么怕","给我闹！","奋力踩踩踩","细妹细狗哦","已然被老哥彻底驯化","是一秒钟都等不了","会打出什么操作来呢","七星大佬不挑车","主打一个看准都不顺眼","感觉良好！塔台塔台，我已起飞","收徒不收坐骑","把大灯和刹车扔家了","和本田思域一同起飞"];
+// Initialize stickers
+(function initStickers() {
+  const set = stickerSets[0];
+  document.getElementById('sticker-left-img').src = STICKERS[set.left] || '';
+  document.getElementById('sticker-right-img').src = STICKERS[set.right] || '';
+  // Rotate stickers every 30 seconds
+  setInterval(rotateStickers, 30000);
+})();
+
+// === CAPTIONS (押韵字幕) ===
+const captions = [
+  "警灯一开，悠哉悠哉",
+  "赶快去拿纸，蹲下就开始",
+  "全速怕什么怕",
+  "给我闹！",
+  "奋力踩踩踩",
+  "细妹细狗哦",
+  "已然被老哥彻底驯化",
+  "是一秒钟都等不了",
+  "会打出什么操作来呢",
+  "七星大佬不挑车",
+  "主打一个看准都不顺眼",
+  "感觉良好！塔台塔台，我已起飞",
+  "收徒不收坐骑",
+  "把大灯和刹车扔家了",
+  "和本田思域一同起飞",
+];
 let captionIndex = 0;
-setInterval(() => { captionIndex = (captionIndex+1)%captions.length; document.getElementById('subtitle-text').textContent = captions[captionIndex]; }, 8000);
 
-// === STARS ===
-function setStars(n) { for(let i=1;i<=7;i++) document.getElementById('star'+i).className = i<=n?'star active':'star'; }
-
-// === MAP ===
-let centerLat=34.0522, centerLng=-118.2437, zoom=15;
-let tileCache={}, tileFailCount={}, stats={ok:0,fail:0,load:0}, loadingSet=new Set();
-let canvas, ctx, viewW, viewH;
-
-function lngToPixelX(lng,z){return((lng+180)/360)*(1<<z)*256;}
-function latToPixelY(lat,z){const n=1<<z;return((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2)*n*256;}
-function pixelXToLng(px,z){return px/((1<<z)*256)*360-180;}
-function pixelYToLat(py,z){const n=1<<z;return Math.atan(Math.sinh(Math.PI*(1-2*py/(n*256))))*180/Math.PI;}
-
-function buildTileUrl(x,y,z){
-  const s=x%8;
-  return `https://t${s}.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${TIANDITU_KEY}`;
+function rotateCaption() {
+  captionIndex = (captionIndex + 1) % captions.length;
+  document.getElementById('subtitle-text').textContent = captions[captionIndex];
 }
-function buildAnnoUrl(x,y,z){
-  const s=x%8;
-  return `https://t${s}.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${TIANDITU_KEY}`;
+setInterval(rotateCaption, 8000);
+
+// === STAR RATING ===
+let currentStars = 0;
+function setStars(n) {
+  currentStars = n;
+  for (let i = 1; i <= 7; i++) {
+    document.getElementById('star' + i).className = i <= n ? 'star active' : 'star';
+  }
 }
 
-function loadTile(x,y,z,anno){
-  const k=(anno?'a':'i')+'/'+z+'/'+x+'/'+y;
-  if(tileCache[k])return tileCache[k];
-  if((tileFailCount[k]||0)>=3)return null;
-  if(loadingSet.has(k))return null;
-  const url=anno?buildAnnoUrl(x,y,z):buildTileUrl(x,y,z);
+// === MAP ENGINE (same as before, working) ===
+let centerLat = 39.9042, centerLng = 116.4074;
+let zoom = 15;
+let tileCache = {};
+let tileFailCount = {};
+let stats = { ok: 0, fail: 0, load: 0 };
+let loadingSet = new Set();
+let canvas, ctx;
+let isDragging = false, lastX = 0, lastY = 0;
+let viewW, viewH;
+
+// Coordinate math
+function lngToPixelX(lng, z) { return ((lng + 180) / 360) * (1 << z) * 256; }
+function latToPixelY(lat, z) {
+  const n = 1 << z;
+  return ((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1/Math.cos(lat * Math.PI / 180)) / Math.PI) / 2) * n * 256;
+}
+function pixelXToLng(px, z) { return px / ((1 << z) * 256) * 360 - 180; }
+function pixelYToLat(py, z) {
+  const n = 1 << z;
+  return Math.atan(Math.sinh(Math.PI * (1 - 2 * py / (n * 256)))) * 180 / Math.PI;
+}
+
+// URL builder
+function buildUrl(x, y, z, layerType, proj, endpoint, key) {
+  const server = x % 8;
+  const full = `${layerType}_${proj}`;
+  if (endpoint === 'wmts') {
+    return `https://t${server}.tianditu.gov.cn/${full}/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layerType}&STYLE=default&TILEMATRIXSET=${proj}&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${key}`;
+  } else {
+    return `https://t${server}.tianditu.gov.cn/DataServer?T=${full}&X=${x}&Y=${y}&L=${z}&tk=${key}`;
+  }
+}
+function getAnnoType(t) { return {img:'cia',vec:'cva',ter:'cta'}[t]||'cia'; }
+
+// Tile loading via proxy
+function loadTile(x, y, z, layerType, proj, endpoint, key) {
+  const k = `${layerType}/${proj}/${z}/${x}/${y}`;
+  if (tileCache[k]) return tileCache[k];
+  if (tileFailCount[k] >= 3) return null;
+  if (loadingSet.has(k)) return null;
+  
+  const url = buildUrl(x, y, z, layerType, proj, endpoint, key);
   loadingSet.add(k);
-  const img=new Image();
-  img.crossOrigin='anonymous';
-  img.onload=()=>{tileCache[k]=img;tileFailCount[k]=0;stats.ok++;loadingSet.delete(k);render();};
-  img.onerror=()=>{tileFailCount[k]=(tileFailCount[k]||0)+1;stats.fail++;loadingSet.delete(k);render();};
-  img.src=url;
+  stats.load++;
+  updateStats();
+  
+  fetch(url, {headers: {'X-Requested-With': 'ChaseGame'}})
+    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
+    .then(blob => {
+      // Auto-fallback: img_c placeholder is ~4769 bytes at high zoom, switch to img_w
+      if (proj === 'c' && z >= 11 && blob.size >= 4500 && blob.size <= 5000 && layerType !== '_fallback') {
+        const fallbackUrl = buildUrl(x, y, z, layerType, 'w', endpoint, key);
+        loadingSet.delete(k);
+        fetch(fallbackUrl, {headers: {'X-Requested-With': 'ChaseGame'}})
+          .then(r2 => r2.blob())
+          .then(b2 => {
+            const blobUrl2 = URL.createObjectURL(b2);
+            const img2 = new Image();
+            img2.onload = () => { tileCache[k] = img2; stats.ok++; stats.load = Math.max(0,stats.load-1); loadingSet.delete(k); updateStats(); render(); URL.revokeObjectURL(blobUrl2); };
+            img2.onerror = () => { stats.fail++; stats.load = Math.max(0,stats.load-1); loadingSet.delete(k); updateStats(); render(); };
+            img2.src = blobUrl2;
+          });
+        return;
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        tileCache[k] = img;
+        tileFailCount[k] = 0;
+        stats.ok++; stats.load = Math.max(0, stats.load-1);
+        loadingSet.delete(k);
+        updateStats(); render();
+        URL.revokeObjectURL(blobUrl);
+      };
+      img.onerror = () => {
+        tileFailCount[k] = (tileFailCount[k]||0)+1;
+        stats.fail++; stats.load = Math.max(0, stats.load-1);
+        loadingSet.delete(k);
+        updateStats(); render();
+        URL.revokeObjectURL(blobUrl);
+      };
+      img.src = blobUrl;
+    })
+    .catch(err => {
+      tileFailCount[k] = (tileFailCount[k]||0)+1;
+      stats.fail++; stats.load = Math.max(0, stats.load-1);
+      loadingSet.delete(k);
+      updateStats(); render();
+    });
   return null;
 }
 
-const roadNames=["LOS ANGELES, CA","EXIT 14A MAPLE AVENUE","PASADENA FWY","WEST ADAMS BOULEVARD","HOLLYWOOD BLVD","SANTA MONICA FWY","INTERSTATE 110","US-101 SOUTH","DOWNTOWN LOS ANGELES"];
-let roadIdx=0;
-setInterval(()=>{roadIdx=(roadIdx+1)%roadNames.length;document.getElementById('road-name').textContent=roadNames[roadIdx];},10000);
+function updateStats() {
+  document.getElementById('debug-stats').textContent = 
+    `瓦片: OK=${stats.ok} Fail=${stats.fail} Load=${stats.load}`;
+}
 
-let gameSpeed=0,gameRunning=false,destLat=0,destLng=0,destSet=false,circleRadius=0,gameStartTime=0;
-setInterval(()=>{if(gameRunning){gameSpeed=60+Math.random()*80;if(Math.random()<0.1)gameSpeed=30+Math.random()*30;}else{gameSpeed=Math.max(0,gameSpeed-5);}document.getElementById('speed-value').textContent=Math.round(gameSpeed);},200);
-setInterval(()=>{if(gameRunning){const e=(Date.now()-gameStartTime)/1000;setStars(Math.min(7,Math.floor(e/15)+1));}},1000);
+// Road name lookup (reverse geocoding placeholder)
+const roadNames = [
+  "LOS ANGELES, CA", "EXIT 14A MAPLE AVENUE", "PASADENA FWY",
+  "WEST ADAMS BOULEVARD", "HOLLYWOOD BLVD", "SANTA MONICA FWY",
+  "INTERSTATE 110", "US-101 SOUTH", "DOWNTOWN LOS ANGELES"
+];
+let roadNameIndex = 0;
+setInterval(() => {
+  roadNameIndex = (roadNameIndex + 1) % roadNames.length;
+  document.getElementById('road-name').textContent = roadNames[roadNameIndex];
+}, 10000);
 
-function render(){
-  ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,viewW,viewH);
-  const cx=lngToPixelX(centerLng,zoom),cy=latToPixelY(centerLat,zoom);
-  const tx=Math.ceil(viewW/256)+2,ty=Math.ceil(viewH/256)+2;
-  const ctX=Math.floor(cx/256),ctY=Math.floor(cy/256),maxT=1<<zoom;
-  for(let dy=-Math.floor(ty/2);dy<=Math.floor(ty/2);dy++){for(let dx=-Math.floor(tx/2);dx<=Math.floor(tx/2);dx++){
-    const x=ctX+dx,y=ctY+dy;if(x<0||y<0||x>=maxT||y>=maxT)continue;
-    const px=x*256-cx+viewW/2,py=y*256-cy+viewH/2;
-    const img=loadTile(x,y,zoom,false);if(img)ctx.drawImage(img,px,py,256,256);
-  }}
-  for(let dy=-Math.floor(ty/2);dy<=Math.floor(ty/2);dy++){for(let dx=-Math.floor(tx/2);dx<=Math.floor(tx/2);dx++){
-    const x=ctX+dx,y=ctY+dy;if(x<0||y<0||x>=maxT||y>=maxT)continue;
-    const px=x*256-cx+viewW/2,py=y*256-cy+viewH/2;
-    const img=loadTile(x,y,zoom,true);if(img)ctx.drawImage(img,px,py,256,256);
-  }}
-  if(destSet&&gameRunning){
-    const dx2=lngToPixelX(destLng,zoom)-cx+viewW/2,dy2=latToPixelY(destLat,zoom)-cy+viewH/2;
-    const mpp=156543.03392*Math.cos(centerLat*Math.PI/180)/(1<<zoom);
-    const r=circleRadius/mpp;
-    ctx.save();ctx.beginPath();ctx.rect(0,0,viewW,viewH);ctx.arc(dx2,dy2,r,0,Math.PI*2,true);ctx.fillStyle='rgba(255,0,0,0.15)';ctx.fill();ctx.restore();
-    ctx.beginPath();ctx.arc(dx2,dy2,r,0,Math.PI*2);ctx.strokeStyle='rgba(255,0,0,0.7)';ctx.lineWidth=3;ctx.stroke();
-    ctx.beginPath();ctx.arc(dx2,dy2,8,0,Math.PI*2);ctx.fillStyle='#ff4444';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-    const el=(Date.now()-gameStartTime)/1000;circleRadius*=(1-el*0.001);
-    if(circleRadius<50){gameRunning=false;showOverlay('被捕！','#ff4444');}
+// === GAME STATE ===
+let gameSpeed = 0;
+let gameRunning = false;
+let destLat = 0, destLng = 0, destSet = false;
+let circleRadius = 0; // meters
+let playerLat, playerLng;
+
+// === GOD'S EYE VIEW (top-down helicopter) ===
+let godEyeMode = true; // 上帝视角：正上方俯拍
+let cameraLat = centerLat, cameraLng = centerLng; // Camera position (follows player)
+let helicopterAltitude = 500; // meters (affects zoom)
+
+// === SIGNAL LOSS MECHANISM ===
+let signalLost = false;
+let signalLostTime = 0; // timestamp when signal was lost
+let signalLostZooming = false; // Are we zooming out?
+let signalLostZoomStart = 0;
+let originalZoom = zoom;
+const SIGNAL_LOSS_TIMEOUT = 60000; // 60 seconds without position = 消星成功
+const SIGNAL_LOSS_ZOOM_OUT_DURATION = 3000; // 3 seconds to zoom out
+const SIGNAL_LOSS_CHECK_DISTANCE = 500; // meters - if player moves >500m without "signal", lose signal
+
+let lastKnownLat = 0, lastKnownLng = 0;
+let lastSignalTime = 0;
+let signalFlickerTimer = 0;
+
+// Speed simulation
+setInterval(() => {
+  if (gameRunning) {
+    gameSpeed = 60 + Math.random() * 80; // 60-140 MPH
+    // Occasionally slow down
+    if (Math.random() < 0.1) gameSpeed = 30 + Math.random() * 30;
+  } else {
+    gameSpeed = Math.max(0, gameSpeed - 5);
   }
-  ctx.strokeStyle='rgba(0,191,255,0.4)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(viewW/2-12,viewH/2);ctx.lineTo(viewW/2+12,viewH/2);ctx.moveTo(viewW/2,viewH/2-12);ctx.lineTo(viewW/2,viewH/2+12);ctx.stroke();
+  document.getElementById('speed-value').textContent = Math.round(gameSpeed);
+}, 200);
+
+// Star escalation
+setInterval(() => {
+  if (gameRunning) {
+    const elapsed = (Date.now() - gameStartTime) / 1000;
+    const stars = Math.min(7, Math.floor(elapsed / 15) + 1);
+    setStars(stars);
+  }
+}, 1000);
+
+let gameStartTime = 0;
+
+// === RENDER ===
+function render() {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, viewW, viewH);
+  
+  const key = document.getElementById('key-input').value.trim();
+  const endpoint = document.getElementById('endpoint').value;
+  const layerType = document.getElementById('layer-type').value;
+  const proj = document.getElementById('proj').value;
+  const annoType = getAnnoType(layerType);
+  
+  const cx = lngToPixelX(centerLng, zoom);
+  const cy = latToPixelY(centerLat, zoom);
+  const tilesX = Math.ceil(viewW / 256) + 2;
+  const tilesY = Math.ceil(viewH / 256) + 2;
+  const ctX = Math.floor(cx / 256);
+  const ctY = Math.floor(cy / 256);
+  const maxTile = 1 << zoom;
+  
+  // Draw base tiles
+  for (let dy = -Math.floor(tilesY/2); dy <= Math.floor(tilesY/2); dy++) {
+    for (let dx = -Math.floor(tilesX/2); dx <= Math.floor(tilesX/2); dx++) {
+      const tx = ctX + dx, ty = ctY + dy;
+      if (tx < 0 || ty < 0 || tx >= maxTile || ty >= maxTile) continue;
+      const px = tx * 256 - cx + viewW/2;
+      const py = ty * 256 - cy + viewH/2;
+      const img = loadTile(tx, ty, zoom, layerType, proj, endpoint, key);
+      if (img) ctx.drawImage(img, px, py, 256, 256);
+    }
+  }
+  // Draw annotation tiles
+  for (let dy = -Math.floor(tilesY/2); dy <= Math.floor(tilesY/2); dy++) {
+    for (let dx = -Math.floor(tilesX/2); dx <= Math.floor(tilesX/2); dx++) {
+      const tx = ctX + dx, ty = ctY + dy;
+      if (tx < 0 || ty < 0 || tx >= maxTile || ty >= maxTile) continue;
+      const px = tx * 256 - cx + viewW/2;
+      const py = ty * 256 - cy + viewH/2;
+      const img = loadTile(tx, ty, zoom, annoType, proj, endpoint, key);
+      if (img) ctx.drawImage(img, px, py, 256, 256);
+    }
+  }
+  
+  // Draw danger circle (shrinking red zone)
+  if (destSet && gameRunning) {
+    const destScreenX = lngToPixelX(destLng, zoom) - cx + viewW/2;
+    const destScreenY = latToPixelY(destLat, zoom) - cy + viewH/2;
+    const metersPerPixel = 156543.03392 * Math.cos(centerLat * Math.PI / 180) / (1 << zoom);
+    const circlePixels = circleRadius / metersPerPixel;
+    
+    // Red zone outside circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, viewW, viewH);
+    ctx.arc(destScreenX, destScreenY, circlePixels, 0, Math.PI * 2, true);
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+    ctx.fill();
+    ctx.restore();
+    
+    // Circle edge
+    ctx.beginPath();
+    ctx.arc(destScreenX, destScreenY, circlePixels, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // Destination marker
+    ctx.beginPath();
+    ctx.arc(destScreenX, destScreenY, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff4444';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Shrink circle over time
+    const elapsed = (Date.now() - gameStartTime) / 1000;
+    circleRadius = circleRadius * (1 - elapsed * 0.001);
+    if (circleRadius < 50) {
+      // Player caught!
+      gameRunning = false;
+      stopChaseMusic();
+      showOverlay('被捕！', '#ff4444');
+    }
+  }
+  
+  // Crosshair at center (player position) - God's Eye View helicopter reticle
+  ctx.strokeStyle = 'rgba(0,191,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(viewW/2 - 12, viewH/2);
+  ctx.lineTo(viewW/2 + 12, viewH/2);
+  ctx.moveTo(viewW/2, viewH/2 - 12);
+  ctx.lineTo(viewW/2, viewH/2 + 12);
+  ctx.stroke();
+  
+  // God's Eye: Draw helicopter reticle (circle with crosshairs)
+  if (godEyeMode) {
+    const cx2 = viewW/2, cy2 = viewH/2;
+    const reticleR = 40;
+    
+    // Outer circle
+    ctx.beginPath();
+    ctx.arc(cx2, cy2, reticleR, 0, Math.PI * 2);
+    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.6)' : 'rgba(0,191,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Inner circle
+    ctx.beginPath();
+    ctx.arc(cx2, cy2, reticleR * 0.3, 0, Math.PI * 2);
+    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.4)' : 'rgba(0,191,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Crosshair lines extending from circle
+    ctx.beginPath();
+    ctx.moveTo(cx2 - reticleR - 15, cy2);
+    ctx.lineTo(cx2 - reticleR * 0.4, cy2);
+    ctx.moveTo(cx2 + reticleR * 0.4, cy2);
+    ctx.lineTo(cx2 + reticleR + 15, cy2);
+    ctx.moveTo(cx2, cy2 - reticleR - 15);
+    ctx.lineTo(cx2, cy2 - reticleR * 0.4);
+    ctx.moveTo(cx2, cy2 + reticleR * 0.4);
+    ctx.lineTo(cx2, cy2 + reticleR + 15);
+    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.5)' : 'rgba(0,191,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // Corner brackets (military-style targeting)
+    const bsz = 8;
+    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.7)' : 'rgba(0,191,255,0.5)';
+    ctx.lineWidth = 2;
+    // top-left
+    ctx.beginPath();
+    ctx.moveTo(cx2-reticleR, cy2-reticleR+bsz); ctx.lineTo(cx2-reticleR, cy2-reticleR); ctx.lineTo(cx2-reticleR+bsz, cy2-reticleR);
+    ctx.stroke();
+    // top-right
+    ctx.beginPath();
+    ctx.moveTo(cx2+reticleR-bsz, cy2-reticleR); ctx.lineTo(cx2+reticleR, cy2-reticleR); ctx.lineTo(cx2+reticleR, cy2-reticleR+bsz);
+    ctx.stroke();
+    // bottom-left
+    ctx.beginPath();
+    ctx.moveTo(cx2-reticleR, cy2+reticleR-bsz); ctx.lineTo(cx2-reticleR, cy2+reticleR); ctx.lineTo(cx2-reticleR+bsz, cy2+reticleR);
+    ctx.stroke();
+    // bottom-right
+    ctx.beginPath();
+    ctx.moveTo(cx2+reticleR-bsz, cy2+reticleR); ctx.lineTo(cx2+reticleR, cy2+reticleR); ctx.lineTo(cx2+reticleR, cy2+reticleR-bsz);
+    ctx.stroke();
+    
+    // Altitude/heading info
+    ctx.font = '10px monospace';
+    ctx.fillStyle = 'rgba(0,191,255,0.6)';
+    ctx.fillText(`ALT ${helicopterAltitude}m`, cx2 + reticleR + 5, cy2 - 5);
+    ctx.fillText(`HDG ${Math.round(Math.random() * 360)}°`, cx2 + reticleR + 5, cy2 + 8);
+  }
+  
+  // Signal loss visual effect
+  if (signalLost && gameRunning) {
+    // Static noise overlay
+    ctx.save();
+    ctx.globalAlpha = 0.08 + Math.random() * 0.05;
+    for (let i = 0; i < 200; i++) {
+      const sx = Math.random() * viewW;
+      const sy = Math.random() * viewH;
+      const sw = 2 + Math.random() * 4;
+      const sh = 1;
+      ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+      ctx.fillRect(sx, sy, sw, sh);
+    }
+    ctx.restore();
+    
+    // "NO SIGNAL" text at top
+    ctx.save();
+    ctx.font = 'bold 16px monospace';
+    ctx.fillStyle = signalFlickerTimer % 2 === 0 ? '#ff4444' : '#880000';
+    ctx.textAlign = 'center';
+    ctx.fillText('▶ NO SIGNAL - SEARCHING...', viewW/2, 30);
+    ctx.restore();
+  }
 }
 
-function showOverlay(t,c){const el=document.getElementById('game-overlay');document.getElementById('overlay-text').textContent=t;document.getElementById('overlay-text').style.color=c;el.className='show';setTimeout(()=>{el.className='';},3000);}
-
-function haversine(a,b,c,d){const R=6371000,dLat=(c-a)*Math.PI/180,dLon=(d-b)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-
-// Touch support
-let touchStartX=0,touchStartY=0,isTouching=false,lastTouchDist=0;
-function initCanvas(){
-  canvas=document.getElementById('map');ctx=canvas.getContext('2d');
-  viewW=window.innerWidth;viewH=window.innerHeight;canvas.width=viewW;canvas.height=viewH;
-  canvas.addEventListener('mousedown',e=>{isTouching=true;touchStartX=e.clientX;touchStartY=e.clientY;});
-  canvas.addEventListener('mousemove',e=>{if(!isTouching)return;const dx=e.clientX-touchStartX,dy=e.clientY-touchStartY;centerLng=pixelXToLng(lngToPixelX(centerLng,zoom)-dx,zoom);centerLat=pixelYToLat(latToPixelY(centerLat,zoom)-dy,zoom);touchStartX=e.clientX;touchStartY=e.clientY;render();});
-  canvas.addEventListener('mouseup',()=>isTouching=false);
-  canvas.addEventListener('mouseleave',()=>isTouching=false);
-  canvas.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY<0&&zoom<18)zoom++;else if(e.deltaY>0&&zoom>3)zoom--;tileCache={};render();});
-  canvas.addEventListener('dblclick',e=>{const px=lngToPixelX(centerLng,zoom)+(e.clientX-viewW/2);const py=latToPixelY(centerLat,zoom)+(e.clientY-viewH/2);destLat=pixelYToLat(py,zoom);destLng=pixelXToLng(px,zoom);destSet=true;circleRadius=haversine(centerLat,centerLng,destLat,destLng)*1.1;gameRunning=true;gameStartTime=Date.now();setStars(1);showOverlay('出发！','#00BFFF');render();});
-  // Touch events
-  canvas.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===1){isTouching=true;touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;}else if(e.touches.length===2){lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}},{passive:false});
-  canvas.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&isTouching){const dx=e.touches[0].clientX-touchStartX,dy=e.touches[0].clientY-touchStartY;centerLng=pixelXToLng(lngToPixelX(centerLng,zoom)-dx,zoom);centerLat=pixelYToLat(latToPixelY(centerLat,zoom)-dy,zoom);touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;render();}else if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(lastTouchDist>0){if(d>lastTouchDist+10&&zoom<18){zoom++;tileCache={};render();}else if(d<lastTouchDist-10&&zoom>3){zoom--;tileCache={};render();}}lastTouchDist=d;}},{passive:false});
-  canvas.addEventListener('touchend',e=>{isTouching=false;lastTouchDist=0;});
-  // Long press for destination (mobile alternative to dblclick)
-  let longPressTimer=null;
-  canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){longPressTimer=setTimeout(()=>{const px=lngToPixelX(centerLng,zoom)+(e.touches[0].clientX-viewW/2);const py=latToPixelY(centerLat,zoom)+(e.touches[0].clientY-viewH/2);destLat=pixelYToLat(py,zoom);destLng=pixelXToLng(px,zoom);destSet=true;circleRadius=haversine(centerLat,centerLng,destLat,destLng)*1.1;gameRunning=true;gameStartTime=Date.now();setStars(1);showOverlay('出发！','#00BFFF');render();},800);}});
-  canvas.addEventListener('touchmove',()=>{if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}});
-  canvas.addEventListener('touchend',()=>{if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}});
-  window.addEventListener('resize',()=>{viewW=window.innerWidth;viewH=window.innerHeight;canvas.width=viewW;canvas.height=viewH;render();});
+function showOverlay(text, color) {
+  const el = document.getElementById('game-overlay');
+  const txt = document.getElementById('overlay-text');
+  txt.textContent = text;
+  txt.style.color = color;
+  el.className = 'show';
+  setTimeout(() => { el.className = ''; }, 3000);
 }
 
-function startGame(){
-  TIANDITU_KEY=document.getElementById('setup-key').value.trim();
-  if(!TIANDITU_KEY){alert('请输入天地图Key');return;}
-  const city=document.getElementById('setup-city').value.trim();
-  if(city.includes('洛杉矶')||city.toLowerCase().includes('los')){centerLat=34.0522;centerLng=-118.2437;}
-  else if(city.includes('北京')){centerLat=39.9042;centerLng=116.4074;}
-  else if(city.includes('上海')){centerLat=31.2304;centerLng=121.4737;}
-  else if(city.includes('纽约')||city.toLowerCase().includes('new')){centerLat=40.7128;centerLng=-74.0060;}
-  document.getElementById('setup-screen').style.display='none';
-  initCanvas();render();
+// === INTERACTION ===
+function initCanvas() {
+  canvas = document.getElementById('map');
+  ctx = canvas.getContext('2d');
+  viewW = window.innerWidth;
+  viewH = window.innerHeight;
+  canvas.width = viewW;
+  canvas.height = viewH;
+  
+  canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+  canvas.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    centerLng = pixelXToLng(lngToPixelX(centerLng, zoom) - dx, zoom);
+    centerLat = pixelYToLat(latToPixelY(centerLat, zoom) - dy, zoom);
+    lastX = e.clientX; lastY = e.clientY;
+    render();
+  });
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
+  
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (e.deltaY < 0 && zoom < 18) zoom++;
+    else if (e.deltaY > 0 && zoom > 1) zoom--;
+    document.getElementById('zoom-range').value = zoom;
+    document.getElementById('zoom-label').textContent = zoom;
+    tileCache = {}; stats = {ok:0,fail:0,load:0};
+    render();
+  });
+  
+  // Double-click to set destination
+  canvas.addEventListener('dblclick', e => {
+    const px = lngToPixelX(centerLng, zoom) + (e.clientX - viewW/2);
+    const py = latToPixelY(centerLat, zoom) + (e.clientY - viewH/2);
+    destLat = pixelYToLat(py, zoom);
+    destLng = pixelXToLng(px, zoom);
+    destSet = true;
+    // Calculate initial circle radius
+    const dist = haversine(centerLat, centerLng, destLat, destLng);
+    circleRadius = dist * 1.1;
+    // Start game
+    gameRunning = true;
+    gameStartTime = Date.now();
+    setStars(1);
+    startChaseMusic();
+    showOverlay('出发！', '#00BFFF');
+    render();
+  });
+  
+  window.addEventListener('resize', () => {
+    viewW = window.innerWidth; viewH = window.innerHeight;
+    canvas.width = viewW; canvas.height = viewH;
+    render();
+  });
 }
 
-function gameLoop(){
-  if(gameRunning){const dx=destLng-centerLng,dy=destLat-centerLat;const sf=gameSpeed*0.0000002;centerLng+=dx*sf;centerLat+=dy*sf;
-  if(haversine(centerLat,centerLng,destLat,destLng)<100){gameRunning=false;showOverlay('★ 消星成功 ★','#00ff00');setStars(0);}render();}
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Debug panel
+function toggleDebug() {
+  document.getElementById('debug-panel').classList.toggle('show');
+}
+function applySettings() {
+  zoom = parseInt(document.getElementById('zoom-range').value);
+  tileCache = {}; tileFailCount = {}; stats = {ok:0,fail:0,load:0};
+  render();
+}
+function testSingleTile() {
+  const key = document.getElementById('key-input').value.trim();
+  const endpoint = document.getElementById('endpoint').value;
+  const layerType = document.getElementById('layer-type').value;
+  const proj = document.getElementById('proj').value;
+  const n = 1 << zoom;
+  const tx = Math.floor((centerLng+180)/360*n);
+  const ty = Math.floor(latToPixelY(centerLat,zoom)/256);
+  const url = buildUrl(tx, ty, zoom, layerType, proj, endpoint, key);
+  fetch(url, {headers: {'X-Requested-With': 'ChaseGame'}})
+    .then(r => { alert(`HTTP ${r.status}, type=${r.headers.get('content-type')}`); return r.blob(); })
+    .then(b => alert(`Size: ${b.size} bytes`))
+    .catch(e => alert(`Error: ${e.message}`));
+}
+
+document.getElementById('zoom-range').addEventListener('input', e => {
+  document.getElementById('zoom-label').textContent = e.target.value;
+});
+
+// === INIT ===
+initCanvas();
+render();
+
+// Animation loop for game state
+function gameLoop() {
+  if (gameRunning) {
+    // Move player toward destination
+    const dx = destLng - centerLng;
+    const dy = destLat - centerLat;
+    const speedFactor = gameSpeed * 0.0000002; // Convert MPH to degrees/sec
+    centerLng += dx * speedFactor;
+    centerLat += dy * speedFactor;
+    
+    // God's eye: Camera follows player (always centered)
+    if (godEyeMode && !signalLost) {
+      cameraLat = centerLat;
+      cameraLng = centerLng;
+    }
+    
+    // Signal loss detection
+    const distFromLastKnown = haversine(centerLat, centerLng, lastKnownLat, lastKnownLng);
+    if (lastSignalTime === 0) {
+      // Initialize
+      lastKnownLat = centerLat;
+      lastKnownLng = centerLng;
+      lastSignalTime = Date.now();
+    }
+    
+    // Simulate periodic signal availability (GPS-like)
+    // Signal is "available" when speed > 20 MPH and distance from last known < 2km
+    const signalAvailable = gameSpeed > 20 && distFromLastKnown < 2000;
+    
+    if (signalAvailable) {
+      lastKnownLat = centerLat;
+      lastKnownLng = centerLng;
+      lastSignalTime = Date.now();
+      if (signalLost) {
+        signalLost = false;
+        signalLostZooming = false;
+        zoom = originalZoom;
+        document.getElementById('signal-loss-indicator').style.display = 'none';
+        showOverlay('信号恢复', '#00ff00');
+      }
+    } else if (!signalLost && Date.now() - lastSignalTime > 5000) {
+      // Signal lost after 5 seconds without GPS fix
+      signalLost = true;
+      signalLostTime = Date.now();
+      originalZoom = zoom;
+      signalLostZooming = true;
+      signalLostZoomStart = Date.now();
+      document.getElementById('signal-loss-indicator').style.display = 'block';
+    }
+    
+    // Signal loss behavior: zoom out gradually
+    if (signalLost) {
+      signalFlickerTimer = Math.floor(Date.now() / 500);
+      
+      const timeSinceLost = Date.now() - signalLostTime;
+      
+      // Update timer display
+      const remaining = Math.max(0, Math.ceil((SIGNAL_LOSS_TIMEOUT - timeSinceLost) / 1000));
+      document.getElementById('signal-timer').textContent = remaining + 's';
+      
+      // Gradually zoom out
+      const zoomOutProgress = Math.min(1, timeSinceLost / (SIGNAL_LOSS_TIMEOUT * 0.8));
+      const targetZoom = Math.max(3, originalZoom - Math.floor(zoomOutProgress * 8));
+      if (targetZoom !== zoom) {
+        zoom = targetZoom;
+        tileCache = {};
+      }
+      
+      // After 60 seconds: 消星成功
+      if (timeSinceLost >= SIGNAL_LOSS_TIMEOUT) {
+        gameRunning = false;
+        signalLost = false;
+        stopChaseMusic();
+        document.getElementById('signal-loss-indicator').style.display = 'none';
+        showOverlay('★ 消星成功 ★\n目标丢失60秒', '#00ff00');
+        setStars(0);
+      }
+    }
+    
+    // Check if reached destination (normal win condition)
+    const dist = haversine(centerLat, centerLng, destLat, destLng);
+    if (dist < 100 && !signalLost) { // Within 100m and signal OK
+      gameRunning = false;
+      stopChaseMusic();
+      showOverlay('★ 消星成功 ★', '#00ff00');
+      setStars(0);
+    }
+    
+    // Update center position for rendering
+    if (godEyeMode) {
+      centerLat = cameraLat;
+      centerLng = cameraLng;
+    }
+    
+    render();
+  }
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);

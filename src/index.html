@@ -9,101 +9,139 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #000; color: #fff
 canvas#map { display: block; cursor: grab; }
 canvas#map:active { cursor: grabbing; }
 
-/* === HUD OVERLAY - Matching video screenshots === */
+/* === HUD OVERLAY - 1:1 matching B站 video screenshot === */
 
-/* Top bar: watermark + road name */
+/* Top info bar: opaque white strip matching video */
 #top-bar {
   position: fixed; top: 0; left: 0; right: 0;
-  display: flex; justify-content: space-between; align-items: flex-start;
-  z-index: 20; padding: 8px 12px;
-  pointer-events: none;
+  display: flex; justify-content: space-between; align-items: center;
+  z-index: 20;
+  background: #fff;
+  padding: 8px 16px;
+  min-height: 54px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
-#watermark {
-  background: rgba(0,0,0,0.5);
-  padding: 4px 10px; border-radius: 4px;
-  font-size: 12px; color: #aaa;
+#road-info-wrap {
+  display: flex; flex-direction: column;
+  justify-content: center;
 }
 #road-name {
-  background: rgba(0,0,0,0.6);
-  padding: 6px 14px; border-radius: 4px;
-  font-size: 14px; color: #fff;
+  font-size: 15px; color: #222;
+  font-weight: normal;
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+#road-location {
+  display: inline-block;
+  background: #0057b8;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  margin-top: 3px;
   font-weight: bold;
-  text-align: center;
-  max-width: 60%;
+  letter-spacing: 1px;
+  width: fit-content;
 }
-
-/* Speed gauge - top right */
 #speed-gauge {
-  position: fixed; top: 50px; right: 15px;
-  z-index: 20; pointer-events: none;
-}
-#speed-circle {
-  width: 100px; height: 100px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.6);
-  border: 3px solid rgba(255,255,255,0.3);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  background: #0057b8;
+  color: #fff;
+  padding: 4px 16px;
+  border-radius: 3px;
+  display: flex; align-items: baseline; gap: 4px;
+  min-width: 90px; justify-content: center;
+  height: 30px;
+  line-height: 22px;
 }
 #speed-value {
-  font-size: 36px; font-weight: bold;
+  font-size: 24px; font-weight: bold;
   color: #fff; line-height: 1;
-  font-family: 'Arial Black', sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }
 #speed-unit {
-  font-size: 12px; color: #aaa;
-  margin-top: 2px;
+  font-size: 13px; color: #fff;
+  font-weight: bold;
 }
 
-/* Bottom subtitle bar */
+/* Yellow-black watermark box (below top bar) */
+#watermark {
+  position: fixed; top: 62px; left: 12px;
+  z-index: 20;
+  background: rgba(255, 200, 0, 0.92);
+  border: 2px solid #222;
+  padding: 5px 12px;
+  border-radius: 3px;
+  pointer-events: none;
+  line-height: 1.4;
+}
+#watermark .wm-title {
+  font-size: 13px; font-weight: bold; color: #111;
+  display: block;
+}
+#watermark .wm-sub {
+  font-size: 9px; color: #333;
+  display: block;
+}
+#watermark .wm-bili {
+  font-size: 9px; color: #555;
+  display: block;
+  margin-top: 1px;
+}
+
+/* Warning box */
+#warning-box {
+  position: fixed; top: 62px; right: 12px;
+  z-index: 20;
+  background: rgba(0,0,0,0.5);
+  padding: 3px 8px; border-radius: 3px;
+  font-size: 10px; color: #ccc;
+  pointer-events: none;
+}
+
+/* Bottom subtitle - large, white with black outline like the video */
 #subtitle-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
-  z-index: 20; padding: 8px 20px 12px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  z-index: 20; padding: 0 20px 18px;
+  background: linear-gradient(transparent 0%, rgba(0,0,0,0.4) 100%);
   text-align: center;
   pointer-events: none;
 }
 #subtitle-text {
-  font-size: 20px; color: #fff;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5);
-  font-weight: bold;
+  font-size: 28px; color: #fff;
+  font-weight: 900;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000,
+    -2px  2px 0 #000, 2px  2px 0 #000,
+     0   -2px 0 #000, 0    2px 0 #000,
+    -2px  0   0 #000, 2px  0   0 #000,
+     0 0 8px rgba(0,0,0,0.5);
+  letter-spacing: 2px;
 }
 
-/* Stickers */
+/* Stickers - positioned to match video layout, above subtitle */
 #sticker-left {
-  position: fixed; bottom: 50px; left: 15px;
-  z-index: 20; pointer-events: none;
-  width: 80px; height: 80px;
-  opacity: 0.9;
+  position: fixed; bottom: 40px; left: 8px;
+  z-index: 25; pointer-events: none;
+  width: 160px; height: 140px;
+  opacity: 0.95;
 }
 #sticker-right {
-  position: fixed; bottom: 50px; right: 15px;
-  z-index: 20; pointer-events: none;
-  width: 80px; height: 100px;
-  opacity: 0.9;
+  position: fixed; bottom: 35px; right: 8px;
+  z-index: 25; pointer-events: none;
+  width: 140px; height: 170px;
+  opacity: 0.95;
 }
 #sticker-left img, #sticker-right img {
   width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.6));
 }
-
-/* Yellow warning box */
-#warning-box {
-  position: fixed; top: 8px; right: 130px;
-  z-index: 20;
-  background: rgba(255,200,0,0.15);
-  border: 1px solid rgba(255,200,0,0.5);
-  padding: 3px 8px; border-radius: 3px;
-  font-size: 10px; color: #ffcc00;
-  pointer-events: none;
-}
-
-/* LIVE indicator */
 #live-indicator {
-  position: fixed; top: 50px; left: 15px;
+  position: fixed; top: 84px; left: 12px;
   z-index: 20;
   background: #e00;
   padding: 2px 8px; border-radius: 3px;
-  font-size: 12px; font-weight: bold;
+  font-size: 11px; font-weight: bold;
   color: #fff;
   animation: livePulse 2s infinite;
   pointer-events: none;
@@ -135,7 +173,7 @@ canvas#map:active { cursor: grabbing; }
 
 /* Debug panel (collapsible) */
 #debug-toggle {
-  position: fixed; top: 50px; right: 130px;
+  position: fixed; bottom: 100px; right: 12px;
   z-index: 25;
   background: rgba(0,0,0,0.6);
   border: 1px solid #444;
@@ -169,9 +207,9 @@ canvas#map:active { cursor: grabbing; }
 
 /* Star rating display */
 #star-rating {
-  position: fixed; top: 120px; right: 15px;
+  position: fixed; top: 46px; right: 140px;
   z-index: 20; pointer-events: none;
-  font-size: 24px;
+  font-size: 20px;
 }
 .star { color: #333; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 .star.active { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
@@ -182,18 +220,23 @@ canvas#map:active { cursor: grabbing; }
 
 <!-- HUD Elements -->
 <div id="top-bar">
-  <div id="watermark">争取最后的自由 bilibili</div>
-  <div id="road-name">LOS ANGELES, CA</div>
-</div>
-
-<div id="warning-box">剧情演绎 游戏画面 请勿模仿 | 固定机位 加速播放</div>
-
-<div id="speed-gauge">
-  <div id="speed-circle">
+  <div id="road-info-wrap">
+    <div id="road-name">CA-210 E CARPOOL LANE [210], SUMNER</div>
+    <div id="road-location">LOCATION</div>
+  </div>
+  <div id="speed-gauge">
     <div id="speed-value">0</div>
-    <div id="speed-unit">MPH</div>
+    <div id="speed-unit">mph</div>
   </div>
 </div>
+
+<div id="watermark">
+  <span class="wm-title">争取最后的自由</span>
+  <span class="wm-sub">固定机位 安全拍摄</span>
+  <span class="wm-bili">bilibili</span>
+</div>
+
+<div id="warning-box">剧情演绎 游戏画面 请勿模仿</div>
 
 <div id="star-rating">
   <span class="star" id="star1">★</span>
@@ -250,8 +293,8 @@ canvas#map:active { cursor: grabbing; }
   </select>
   <label>投影:</label>
   <select id="proj">
-    <option value="w">墨卡托 _w</option>
-    <option value="c">经纬度 _c</option>
+    <option value="w" selected>墨卡托 _w（推荐）</option>
+    <option value="c">经纬度 _c（zoom≤10）</option>
   </select>
   <label>缩放: <span id="zoom-label">15</span></label>
   <input type="range" id="zoom-range" min="3" max="18" value="15" />
@@ -291,8 +334,8 @@ function stopChaseMusic() {
 
 // === STICKER DATA (base64 embedded) ===
 const STICKERS = {
-  "bear_driver": "sticker/panda_driver.png",
-  "anime_girl": "sticker/anime_girl.png",
+  "bear_driver": "sticker/panda_driver_nobg.png",
+  "anime_girl": "sticker/anime_girl_nobg.png",
   "anime_girl_variant": "sticker/anime_girl_variant_raw.png",
   "panda_running": "sticker/panda_running_raw.png"
 };
@@ -407,6 +450,21 @@ function loadTile(x, y, z, layerType, proj, endpoint, key) {
   fetch('http://127.0.0.1:18765/tile?url=' + encodeURIComponent(url))
     .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
     .then(blob => {
+      // Auto-fallback: img_c placeholder is ~4769 bytes at high zoom, switch to img_w
+      if (proj === 'c' && z >= 11 && blob.size >= 4500 && blob.size <= 5000 && layerType !== '_fallback') {
+        const fallbackUrl = buildUrl(x, y, z, layerType, 'w', endpoint, key);
+        loadingSet.delete(k);
+        fetch('http://127.0.0.1:18765/tile?url=' + encodeURIComponent(fallbackUrl))
+          .then(r2 => r2.blob())
+          .then(b2 => {
+            const blobUrl2 = URL.createObjectURL(b2);
+            const img2 = new Image();
+            img2.onload = () => { tileCache[k] = img2; stats.ok++; stats.load = Math.max(0,stats.load-1); loadingSet.delete(k); updateStats(); render(); URL.revokeObjectURL(blobUrl2); };
+            img2.onerror = () => { stats.fail++; stats.load = Math.max(0,stats.load-1); loadingSet.delete(k); updateStats(); render(); };
+            img2.src = blobUrl2;
+          });
+        return;
+      }
       const blobUrl = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
