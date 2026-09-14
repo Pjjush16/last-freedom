@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>最后的自由</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: #000; color: #fff; overflow: hidden; user-select: none; -webkit-user-select: none; }
+canvas#map { display: block; width: 100vw; height: 100vh; touch-action: none; }
+
+#top-bar { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; z-index: 20; padding: 8px 12px; pointer-events: none; }
+#watermark { background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 4px; font-size: 11px; color: #aaa; }
+#road-name { background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 4px; font-size: 13px; color: #fff; font-weight: bold; text-align: center; max-width: 60%; }
+
+#speed-gauge { position: fixed; top: 50px; right: 15px; z-index: 20; pointer-events: none; }
+#speed-circle { width: 80px; height: 80px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 3px solid rgba(255,255,255,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#speed-value { font-size: 28px; font-weight: bold; color: #fff; line-height: 1; font-family: 'Arial Black', sans-serif; }
+#speed-unit { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+#subtitle-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; padding: 8px 20px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); text-align: center; pointer-events: none; }
+#subtitle-text { font-size: 16px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); font-weight: bold; }
+
+#sticker-left { position: fixed; bottom: 45px; left: 10px; z-index: 20; pointer-events: none; width: 70px; height: 70px; opacity: 0.9; }
+#sticker-right { position: fixed; bottom: 45px; right: 10px; z-index: 20; pointer-events: none; width: 70px; height: 85px; opacity: 0.9; }
+#sticker-left img, #sticker-right img { width: 100%; height: 100%; object-fit: contain; }
+
+#warning-box { position: fixed; top: 8px; right: 105px; z-index: 20; background: rgba(255,200,0,0.15); border: 1px solid rgba(255,200,0,0.5); padding: 3px 8px; border-radius: 3px; font-size: 9px; color: #ffcc00; pointer-events: none; }
+
+#live-indicator { position: fixed; top: 45px; left: 12px; z-index: 20; background: #e00; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; color: #fff; animation: livePulse 2s infinite; pointer-events: none; }
+@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+#game-overlay { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; text-align: center; pointer-events: none; }
+#game-overlay.show { display: block; }
+#game-overlay h1 { font-size: 36px; font-weight: bold; text-shadow: 0 0 20px currentColor; animation: overlayPop 0.5s ease-out; }
+@keyframes overlayPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+#star-rating { position: fixed; top: 100px; right: 15px; z-index: 20; pointer-events: none; font-size: 20px; }
+.star { color: #333; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+.star.active { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
+
+#setup-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+#setup-screen h2 { color: #00BFFF; font-size: 22px; margin-bottom: 20px; }
+#setup-screen label { color: #aaa; font-size: 13px; margin-top: 10px; }
+#setup-screen input { width: 80%; max-width: 400px; padding: 10px; margin: 5px 0; background: #1a1a2e; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
+#setup-screen button { margin-top: 20px; padding: 12px 40px; background: #00BFFF; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="setup-screen">
+  <h2>最后的自由</h2>
+  <p style="color:#888;font-size:13px;margin-bottom:15px;">直升机俯拍追逐游戏</p>
+  <label>天地图Key（必填）:</label>
+  <input type="text" id="setup-key" placeholder="输入你的天地图Key" />
+  <label>初始城市:</label>
+  <input type="text" id="setup-city" value="洛杉矶" />
+  <button onclick="startGame()">开始游戏</button>
+  <p style="color:#555;font-size:11px;margin-top:20px;">双击地图设定终点 → 开始追逐</p>
+</div>
+
+<canvas id="map"></canvas>
+
+<div id="top-bar">
+  <div id="watermark">争取最后的自由 bilibili</div>
+  <div id="road-name">LOS ANGELES, CA</div>
+</div>
+<div id="warning-box">剧情演绎 请勿模仿 | 固定机位 加速播放</div>
+<div id="speed-gauge"><div id="speed-circle"><div id="speed-value">0</div><div id="speed-unit">MPH</div></div></div>
+<div id="star-rating"><span class="star" id="star1">★</span><span class="star" id="star2">★</span><span class="star" id="star3">★</span><span class="star" id="star4">★</span><span class="star" id="star5">★</span><span class="star" id="star6">★</span><span class="star" id="star7">★</span></div>
+<div id="live-indicator">● LIVE</div>
+<div id="sticker-left"><img id="sticker-left-img" src="stickers/bear_driver_raw.png" alt=""></div>
+<div id="sticker-right"><img id="sticker-right-img" src="stickers/anime_girl_raw.png" alt=""></div>
+<div id="subtitle-bar"><div id="subtitle-text">警灯一开，悠哉悠哉</div></div>
+<div id="game-overlay"><h1 id="overlay-text"></h1></div>
+
+<script>
+// === CONFIG ===
+let TIANDITU_KEY = '';
+
+// === STICKERS ===
+const stickerSets = [
+  { left: 'stickers/bear_driver_raw.png', right: 'stickers/anime_girl_raw.png' },
+  { left: 'stickers/panda_running_raw.png', right: 'stickers/anime_girl_variant_raw.png' },
+  { left: 'stickers/bear_driver_raw.png', right: 'stickers/anime_girl_variant_raw.png' },
+  { left: 'stickers/panda_running_raw.png', right: 'stickers/anime_girl_raw.png' },
+];
+let currentStickerSet = 0;
+function rotateStickers() {
+  currentStickerSet = (currentStickerSet + 1) % stickerSets.length;
+  document.getElementById('sticker-left-img').src = stickerSets[currentStickerSet].left;
+  document.getElementById('sticker-right-img').src = stickerSets[currentStickerSet].right;
+}
+setInterval(rotateStickers, 30000);
+
+// === CAPTIONS ===
+const captions = ["警灯一开，悠哉悠哉","赶快去拿纸，蹲下就开始","全速怕什么怕","给我闹！","奋力踩踩踩","细妹细狗哦","已然被老哥彻底驯化","是一秒钟都等不了","会打出什么操作来呢","七星大佬不挑车","主打一个看准都不顺眼","感觉良好！塔台塔台，我已起飞","收徒不收坐骑","把大灯和刹车扔家了","和本田思域一同起飞"];
+let captionIndex = 0;
+setInterval(() => { captionIndex = (captionIndex+1)%captions.length; document.getElementById('subtitle-text').textContent = captions[captionIndex]; }, 8000);
+
+// === STARS ===
+function setStars(n) { for(let i=1;i<=7;i++) document.getElementById('star'+i).className = i<=n?'star active':'star'; }
+
+// === MAP ===
+let centerLat=34.0522, centerLng=-118.2437, zoom=15;
+let tileCache={}, tileFailCount={}, stats={ok:0,fail:0,load:0}, loadingSet=new Set();
+let canvas, ctx, viewW, viewH;
+
+function lngToPixelX(lng,z){return((lng+180)/360)*(1<<z)*256;}
+function latToPixelY(lat,z){const n=1<<z;return((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2)*n*256;}
+function pixelXToLng(px,z){return px/((1<<z)*256)*360-180;}
+function pixelYToLat(py,z){const n=1<<z;return Math.atan(Math.sinh(Math.PI*(1-2*py/(n*256))))*180/Math.PI;}
+
+function buildTileUrl(x,y,z){
+  const s=x%8;
+  return `https://t${s}.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${TIANDITU_KEY}`;
+}
+function buildAnnoUrl(x,y,z){
+  const s=x%8;
+  return `https://t${s}.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${TIANDITU_KEY}`;
+}
+
+function loadTile(x,y,z,anno){
+  const k=(anno?'a':'i')+'/'+z+'/'+x+'/'+y;
+  if(tileCache[k])return tileCache[k];
+  if((tileFailCount[k]||0)>=3)return null;
+  if(loadingSet.has(k))return null;
+  const url=anno?buildAnnoUrl(x,y,z):buildTileUrl(x,y,z);
+  loadingSet.add(k);
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=()=>{tileCache[k]=img;tileFailCount[k]=0;stats.ok++;loadingSet.delete(k);render();};
+  img.onerror=()=>{tileFailCount[k]=(tileFailCount[k]||0)+1;stats.fail++;loadingSet.delete(k);render();};
+  img.src=url;
+  return null;
+}
+
+const roadNames=["LOS ANGELES, CA","EXIT 14A MAPLE AVENUE","PASADENA FWY","WEST ADAMS BOULEVARD","HOLLYWOOD BLVD","SANTA MONICA FWY","INTERSTATE 110","US-101 SOUTH","DOWNTOWN LOS ANGELES"];
+let roadIdx=0;
+setInterval(()=>{roadIdx=(roadIdx+1)%roadNames.length;document.getElementById('road-name').textContent=roadNames[roadIdx];},10000);
+
+let gameSpeed=0,gameRunning=false,destLat=0,destLng=0,destSet=false,circleRadius=0,gameStartTime=0;
+setInterval(()=>{if(gameRunning){gameSpeed=60+Math.random()*80;if(Math.random()<0.1)gameSpeed=30+Math.random()*30;}else{gameSpeed=Math.max(0,gameSpeed-5);}document.getElementById('speed-value').textContent=Math.round(gameSpeed);},200);
+setInterval(()=>{if(gameRunning){const e=(Date.now()-gameStartTime)/1000;setStars(Math.min(7,Math.floor(e/15)+1));}},1000);
+
+function render(){
+  ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,viewW,viewH);
+  const cx=lngToPixelX(centerLng,zoom),cy=latToPixelY(centerLat,zoom);
+  const tx=Math.ceil(viewW/256)+2,ty=Math.ceil(viewH/256)+2;
+  const ctX=Math.floor(cx/256),ctY=Math.floor(cy/256),maxT=1<<zoom;
+  for(let dy=-Math.floor(ty/2);dy<=Math.floor(ty/2);dy++){for(let dx=-Math.floor(tx/2);dx<=Math.floor(tx/2);dx++){
+    const x=ctX+dx,y=ctY+dy;if(x<0||y<0||x>=maxT||y>=maxT)continue;
+    const px=x*256-cx+viewW/2,py=y*256-cy+viewH/2;
+    const img=loadTile(x,y,zoom,false);if(img)ctx.drawImage(img,px,py,256,256);
+  }}
+  for(let dy=-Math.floor(ty/2);dy<=Math.floor(ty/2);dy++){for(let dx=-Math.floor(tx/2);dx<=Math.floor(tx/2);dx++){
+    const x=ctX+dx,y=ctY+dy;if(x<0||y<0||x>=maxT||y>=maxT)continue;
+    const px=x*256-cx+viewW/2,py=y*256-cy+viewH/2;
+    const img=loadTile(x,y,zoom,true);if(img)ctx.drawImage(img,px,py,256,256);
+  }}
+  if(destSet&&gameRunning){
+    const dx2=lngToPixelX(destLng,zoom)-cx+viewW/2,dy2=latToPixelY(destLat,zoom)-cy+viewH/2;
+    const mpp=156543.03392*Math.cos(centerLat*Math.PI/180)/(1<<zoom);
+    const r=circleRadius/mpp;
+    ctx.save();ctx.beginPath();ctx.rect(0,0,viewW,viewH);ctx.arc(dx2,dy2,r,0,Math.PI*2,true);ctx.fillStyle='rgba(255,0,0,0.15)';ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.arc(dx2,dy2,r,0,Math.PI*2);ctx.strokeStyle='rgba(255,0,0,0.7)';ctx.lineWidth=3;ctx.stroke();
+    ctx.beginPath();ctx.arc(dx2,dy2,8,0,Math.PI*2);ctx.fillStyle='#ff4444';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    const el=(Date.now()-gameStartTime)/1000;circleRadius*=(1-el*0.001);
+    if(circleRadius<50){gameRunning=false;showOverlay('被捕！','#ff4444');}
+  }
+  ctx.strokeStyle='rgba(0,191,255,0.4)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(viewW/2-12,viewH/2);ctx.lineTo(viewW/2+12,viewH/2);ctx.moveTo(viewW/2,viewH/2-12);ctx.lineTo(viewW/2,viewH/2+12);ctx.stroke();
+}
+
+function showOverlay(t,c){const el=document.getElementById('game-overlay');document.getElementById('overlay-text').textContent=t;document.getElementById('overlay-text').style.color=c;el.className='show';setTimeout(()=>{el.className='';},3000);}
+
+function haversine(a,b,c,d){const R=6371000,dLat=(c-a)*Math.PI/180,dLon=(d-b)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+// Touch support
+let touchStartX=0,touchStartY=0,isTouching=false,lastTouchDist=0;
+function initCanvas(){
+  canvas=document.getElementById('map');ctx=canvas.getContext('2d');
+  viewW=window.innerWidth;viewH=window.innerHeight;canvas.width=viewW;canvas.height=viewH;
+  canvas.addEventListener('mousedown',e=>{isTouching=true;touchStartX=e.clientX;touchStartY=e.clientY;});
+  canvas.addEventListener('mousemove',e=>{if(!isTouching)return;const dx=e.clientX-touchStartX,dy=e.clientY-touchStartY;centerLng=pixelXToLng(lngToPixelX(centerLng,zoom)-dx,zoom);centerLat=pixelYToLat(latToPixelY(centerLat,zoom)-dy,zoom);touchStartX=e.clientX;touchStartY=e.clientY;render();});
+  canvas.addEventListener('mouseup',()=>isTouching=false);
+  canvas.addEventListener('mouseleave',()=>isTouching=false);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY<0&&zoom<18)zoom++;else if(e.deltaY>0&&zoom>3)zoom--;tileCache={};render();});
+  canvas.addEventListener('dblclick',e=>{const px=lngToPixelX(centerLng,zoom)+(e.clientX-viewW/2);const py=latToPixelY(centerLat,zoom)+(e.clientY-viewH/2);destLat=pixelYToLat(py,zoom);destLng=pixelXToLng(px,zoom);destSet=true;circleRadius=haversine(centerLat,centerLng,destLat,destLng)*1.1;gameRunning=true;gameStartTime=Date.now();setStars(1);showOverlay('出发！','#00BFFF');render();});
+  // Touch events
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===1){isTouching=true;touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;}else if(e.touches.length===2){lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&isTouching){const dx=e.touches[0].clientX-touchStartX,dy=e.touches[0].clientY-touchStartY;centerLng=pixelXToLng(lngToPixelX(centerLng,zoom)-dx,zoom);centerLat=pixelYToLat(latToPixelY(centerLat,zoom)-dy,zoom);touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;render();}else if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(lastTouchDist>0){if(d>lastTouchDist+10&&zoom<18){zoom++;tileCache={};render();}else if(d<lastTouchDist-10&&zoom>3){zoom--;tileCache={};render();}}lastTouchDist=d;}},{passive:false});
+  canvas.addEventListener('touchend',e=>{isTouching=false;lastTouchDist=0;});
+  // Long press for destination (mobile alternative to dblclick)
+  let longPressTimer=null;
+  canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){longPressTimer=setTimeout(()=>{const px=lngToPixelX(centerLng,zoom)+(e.touches[0].clientX-viewW/2);const py=latToPixelY(centerLat,zoom)+(e.touches[0].clientY-viewH/2);destLat=pixelYToLat(py,zoom);destLng=pixelXToLng(px,zoom);destSet=true;circleRadius=haversine(centerLat,centerLng,destLat,destLng)*1.1;gameRunning=true;gameStartTime=Date.now();setStars(1);showOverlay('出发！','#00BFFF');render();},800);}});
+  canvas.addEventListener('touchmove',()=>{if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}});
+  canvas.addEventListener('touchend',()=>{if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}});
+  window.addEventListener('resize',()=>{viewW=window.innerWidth;viewH=window.innerHeight;canvas.width=viewW;canvas.height=viewH;render();});
+}
+
+function startGame(){
+  TIANDITU_KEY=document.getElementById('setup-key').value.trim();
+  if(!TIANDITU_KEY){alert('请输入天地图Key');return;}
+  const city=document.getElementById('setup-city').value.trim();
+  if(city.includes('洛杉矶')||city.toLowerCase().includes('los')){centerLat=34.0522;centerLng=-118.2437;}
+  else if(city.includes('北京')){centerLat=39.9042;centerLng=116.4074;}
+  else if(city.includes('上海')){centerLat=31.2304;centerLng=121.4737;}
+  else if(city.includes('纽约')||city.toLowerCase().includes('new')){centerLat=40.7128;centerLng=-74.0060;}
+  document.getElementById('setup-screen').style.display='none';
+  initCanvas();render();
+}
+
+function gameLoop(){
+  if(gameRunning){const dx=destLng-centerLng,dy=destLat-centerLat;const sf=gameSpeed*0.0000002;centerLng+=dx*sf;centerLat+=dy*sf;
+  if(haversine(centerLat,centerLng,destLat,destLng)<100){gameRunning=false;showOverlay('★ 消星成功 ★','#00ff00');setStars(0);}render();}
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

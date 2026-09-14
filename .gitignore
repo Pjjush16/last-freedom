@@ -1,0 +1,7 @@
+node_modules/
+target/
+*.apk
+*.tar.gz
+test-screenshots/
+test_screenshots/
+.DS_Store
