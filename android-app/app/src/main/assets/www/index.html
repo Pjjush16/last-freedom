@@ -5,153 +5,160 @@
 <title>最后的自由 - Linux版</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Microsoft YaHei', sans-serif; background: #000; color: #fff; overflow: hidden; user-select: none; }
+body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #0a0e1a; color: #fff; overflow: hidden; user-select: none; }
 canvas#map { display: block; cursor: grab; }
 canvas#map:active { cursor: grabbing; }
 
-/* === HUD OVERLAY - 1:1 matching B站 video screenshot === */
+/* === 高德车机版风格 HUD === */
 
-/* Top info bar: opaque white strip matching video */
+/* 顶部导航栏 - 深色半透明 */
 #top-bar {
   position: fixed; top: 0; left: 0; right: 0;
   display: flex; justify-content: space-between; align-items: center;
   z-index: 20;
-  background: #fff;
-  padding: 8px 16px;
-  min-height: 54px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  background: linear-gradient(180deg, rgba(10,14,26,0.92) 0%, rgba(10,14,26,0.7) 100%);
+  padding: 10px 20px;
+  min-height: 60px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 #road-info-wrap {
   display: flex; flex-direction: column;
   justify-content: center;
+  gap: 4px;
 }
 #road-name {
-  font-size: 15px; color: #222;
-  font-weight: normal;
-  font-family: Arial, Helvetica, sans-serif;
-  letter-spacing: 0.3px;
+  font-size: 17px; color: #e8ecf4;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   white-space: nowrap;
 }
 #road-location {
-  display: inline-block;
-  background: #0057b8;
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 2px;
-  margin-top: 3px;
-  font-weight: bold;
-  letter-spacing: 1px;
+  display: inline-flex; align-items: center; gap: 4px;
+  color: #64d2ff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
   width: fit-content;
 }
-#speed-gauge {
-  background: #0057b8;
-  color: #fff;
-  padding: 4px 16px;
-  border-radius: 3px;
-  display: flex; align-items: baseline; gap: 4px;
-  min-width: 90px; justify-content: center;
-  height: 30px;
-  line-height: 22px;
-}
-#speed-value {
-  font-size: 24px; font-weight: bold;
-  color: #fff; line-height: 1;
-  font-family: Arial, Helvetica, sans-serif;
-}
-#speed-unit {
-  font-size: 13px; color: #fff;
-  font-weight: bold;
+#road-location::before {
+  content: '📍';
+  font-size: 10px;
 }
 
-/* Yellow-black watermark box (below top bar) */
+/* 圆形速度仪表 */
+#speed-gauge {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,180,255,0.15) 0%, rgba(0,100,200,0.05) 70%);
+  border: 2px solid rgba(100,210,255,0.4);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(0,150,255,0.15), inset 0 0 15px rgba(0,100,200,0.1);
+}
+#speed-value {
+  font-size: 26px; font-weight: 700;
+  color: #fff; line-height: 1;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-variant-numeric: tabular-nums;
+}
+#speed-unit {
+  font-size: 10px; color: rgba(100,210,255,0.7);
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 水印信息卡 */
 #watermark {
-  position: fixed; top: 62px; left: 12px;
+  position: fixed; top: 70px; left: 16px;
   z-index: 20;
-  background: rgba(255, 200, 0, 0.92);
-  border: 2px solid #222;
-  padding: 5px 12px;
-  border-radius: 3px;
+  background: rgba(10,14,26,0.8);
+  border: 1px solid rgba(100,210,255,0.2);
+  border-left: 3px solid #64d2ff;
+  padding: 8px 14px;
+  border-radius: 6px;
   pointer-events: none;
-  line-height: 1.4;
+  line-height: 1.5;
+  backdrop-filter: blur(6px);
 }
 #watermark .wm-title {
-  font-size: 13px; font-weight: bold; color: #111;
+  font-size: 13px; font-weight: 700; color: #e8ecf4;
   display: block;
 }
 #watermark .wm-sub {
-  font-size: 9px; color: #333;
+  font-size: 10px; color: rgba(100,210,255,0.6);
   display: block;
 }
 #watermark .wm-bili {
-  font-size: 9px; color: #555;
+  font-size: 10px; color: rgba(255,255,255,0.35);
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
-/* Warning box */
+/* 安全提示 */
 #warning-box {
-  position: fixed; top: 62px; right: 12px;
+  position: fixed; top: 70px; right: 16px;
   z-index: 20;
-  background: rgba(0,0,0,0.5);
-  padding: 3px 8px; border-radius: 3px;
-  font-size: 10px; color: #ccc;
+  background: rgba(10,14,26,0.7);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 10px; color: rgba(255,255,255,0.4);
   pointer-events: none;
+  backdrop-filter: blur(6px);
 }
 
-/* Bottom subtitle - large, white with black outline like the video */
+/* 底部字幕 - 车机风格 */
 #subtitle-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
-  z-index: 20; padding: 0 20px 18px;
-  background: linear-gradient(transparent 0%, rgba(0,0,0,0.4) 100%);
+  z-index: 20; padding: 0 20px 20px;
+  background: linear-gradient(transparent 0%, rgba(10,14,26,0.85) 100%);
   text-align: center;
   pointer-events: none;
 }
 #subtitle-text {
-  font-size: 28px; color: #fff;
-  font-weight: 900;
-  text-shadow:
-    -2px -2px 0 #000, 2px -2px 0 #000,
-    -2px  2px 0 #000, 2px  2px 0 #000,
-     0   -2px 0 #000, 0    2px 0 #000,
-    -2px  0   0 #000, 2px  0   0 #000,
-     0 0 8px rgba(0,0,0,0.5);
-  letter-spacing: 2px;
+  font-size: 26px; color: #fff;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
+  letter-spacing: 3px;
 }
 
-/* Stickers - positioned to match video layout, above subtitle */
+/* 贴纸 */
 #sticker-left {
-  position: fixed; bottom: 40px; left: 8px;
+  position: fixed; bottom: 50px; left: 12px;
   z-index: 25; pointer-events: none;
-  width: 160px; height: 140px;
-  opacity: 0.95;
+  width: 140px; height: 120px;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
 }
 #sticker-right {
-  position: fixed; bottom: 35px; right: 8px;
+  position: fixed; bottom: 45px; right: 12px;
   z-index: 25; pointer-events: none;
-  width: 140px; height: 170px;
-  opacity: 0.95;
+  width: 120px; height: 150px;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
 }
 #sticker-left img, #sticker-right img {
   width: 100%; height: 100%; object-fit: contain;
-  filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.6));
 }
+
+/* LIVE 指示灯 */
 #live-indicator {
-  position: fixed; top: 84px; left: 12px;
+  position: fixed; top: 80px; left: 16px;
   z-index: 20;
-  background: #e00;
-  padding: 2px 8px; border-radius: 3px;
-  font-size: 11px; font-weight: bold;
+  background: rgba(220, 40, 40, 0.9);
+  padding: 3px 10px; border-radius: 12px;
+  font-size: 11px; font-weight: 700;
   color: #fff;
   animation: livePulse 2s infinite;
   pointer-events: none;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(220,40,40,0.4);
 }
 @keyframes livePulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.5; }
 }
 
-/* Game overlay (star clear / caught) */
+/* 游戏结果覆盖层 */
 #game-overlay {
   display: none;
   position: fixed; top: 50%; left: 50%;
@@ -162,8 +169,8 @@ canvas#map:active { cursor: grabbing; }
 }
 #game-overlay.show { display: block; }
 #game-overlay h1 {
-  font-size: 48px; font-weight: bold;
-  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  font-size: 52px; font-weight: 800;
+  text-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
   animation: overlayPop 0.5s ease-out;
 }
 @keyframes overlayPop {
@@ -171,48 +178,55 @@ canvas#map:active { cursor: grabbing; }
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Debug panel (collapsible) */
+/* 调试面板 */
 #debug-toggle {
-  position: fixed; bottom: 100px; right: 12px;
+  position: fixed; bottom: 100px; right: 16px;
   z-index: 25;
-  background: rgba(0,0,0,0.6);
-  border: 1px solid #444;
-  color: #888; padding: 2px 6px;
-  border-radius: 3px; font-size: 10px;
+  background: rgba(10,14,26,0.7);
+  border: 1px solid rgba(100,210,255,0.2);
+  color: rgba(100,210,255,0.5); padding: 4px 10px;
+  border-radius: 16px; font-size: 10px;
   cursor: pointer;
+  backdrop-filter: blur(6px);
 }
+#debug-toggle:hover { border-color: rgba(100,210,255,0.5); color: #64d2ff; }
 #debug-panel {
   display: none;
   position: fixed; top: 70px; right: 10px;
   z-index: 25;
-  background: rgba(0,0,0,0.9);
-  padding: 10px; border-radius: 8px;
+  background: rgba(10,14,26,0.95);
+  padding: 14px; border-radius: 12px;
   font-size: 11px; max-width: 280px;
-  border: 1px solid #333;
+  border: 1px solid rgba(100,210,255,0.15);
+  backdrop-filter: blur(10px);
 }
 #debug-panel.show { display: block; }
-#debug-panel label { display: block; margin: 3px 0 1px; color: #888; }
+#debug-panel label { display: block; margin: 4px 0 2px; color: rgba(100,210,255,0.6); font-size: 10px; }
 #debug-panel input, #debug-panel select {
-  width: 100%; padding: 3px; margin: 1px 0;
-  background: #1a1a2e; color: #ccc; border: 1px solid #333;
-  border-radius: 3px; font-size: 11px;
+  width: 100%; padding: 6px 8px; margin: 2px 0;
+  background: rgba(255,255,255,0.05); color: #e8ecf4; border: 1px solid rgba(100,210,255,0.15);
+  border-radius: 6px; font-size: 11px;
 }
+#debug-panel input:focus, #debug-panel select:focus { border-color: #64d2ff; outline: none; }
 #debug-panel button {
-  width: 100%; padding: 6px; margin: 3px 0;
-  background: #333; color: #ccc; border: 1px solid #555;
-  border-radius: 3px; cursor: pointer; font-size: 11px;
+  width: 100%; padding: 8px; margin: 4px 0;
+  background: rgba(100,210,255,0.1); color: #64d2ff; border: 1px solid rgba(100,210,255,0.2);
+  border-radius: 6px; cursor: pointer; font-size: 11px;
 }
-#debug-panel button:hover { background: #444; }
-#debug-stats { font-family: monospace; color: #0f0; font-size: 10px; margin-top: 5px; }
+#debug-panel button:hover { background: rgba(100,210,255,0.2); }
+#debug-stats { font-family: 'SF Mono', monospace; color: rgba(100,210,255,0.6); font-size: 10px; margin-top: 8px; }
 
-/* Star rating display */
+/* 星级评分 */
 #star-rating {
-  position: fixed; top: 46px; right: 140px;
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
   z-index: 20; pointer-events: none;
-  font-size: 20px;
+  font-size: 18px;
+  background: rgba(10,14,26,0.6);
+  padding: 4px 12px; border-radius: 20px;
+  backdrop-filter: blur(6px);
 }
-.star { color: #333; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-.star.active { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
+.star { color: rgba(255,255,255,0.15); text-shadow: none; transition: all 0.3s; }
+.star.active { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.6); }
 </style>
 </head>
 <body>
@@ -447,14 +461,14 @@ function loadTile(x, y, z, layerType, proj, endpoint, key) {
   stats.load++;
   updateStats();
   
-  fetch(url, {headers: {'X-Requested-With': 'ChaseGame'}})
+  fetch('http://127.0.0.1:18765/tile?url=' + encodeURIComponent(url))
     .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
     .then(blob => {
       // Auto-fallback: img_c placeholder is ~4769 bytes at high zoom, switch to img_w
       if (proj === 'c' && z >= 11 && blob.size >= 4500 && blob.size <= 5000 && layerType !== '_fallback') {
         const fallbackUrl = buildUrl(x, y, z, layerType, 'w', endpoint, key);
         loadingSet.delete(k);
-        fetch(fallbackUrl, {headers: {'X-Requested-With': 'ChaseGame'}})
+        fetch('http://127.0.0.1:18765/tile?url=' + encodeURIComponent(fallbackUrl))
           .then(r2 => r2.blob())
           .then(b2 => {
             const blobUrl2 = URL.createObjectURL(b2);
@@ -517,10 +531,12 @@ let destLat = 0, destLng = 0, destSet = false;
 let circleRadius = 0; // meters
 let playerLat, playerLng;
 
-// === GOD'S EYE VIEW (top-down helicopter) ===
-let godEyeMode = true; // 上帝视角：正上方俯拍
-let cameraLat = centerLat, cameraLng = centerLng; // Camera position (follows player)
-let helicopterAltitude = 500; // meters (affects zoom)
+// === AERIAL VIEW (航拍视角 - 直升机追拍) ===
+let aerialMode = true; // 航拍视角：镜头在后方上方，目标偏下
+let cameraLat = centerLat, cameraLng = centerLng;
+let helicopterAltitude = 300; // 航拍高度
+const PLAYER_SCREEN_Y_RATIO = 0.65; // 玩家显示在屏幕 65% 高度处（镜头在后方）
+let lastHeading = 0; // 上次朝向角度
 
 // === SIGNAL LOSS MECHANISM ===
 let signalLost = false;
@@ -561,7 +577,7 @@ let gameStartTime = 0;
 
 // === RENDER ===
 function render() {
-  ctx.fillStyle = '#1a1a2e';
+  ctx.fillStyle = '#0a0e1a';
   ctx.fillRect(0, 0, viewW, viewH);
   
   const key = document.getElementById('key-input').value.trim();
@@ -570,6 +586,9 @@ function render() {
   const proj = document.getElementById('proj').value;
   const annoType = getAnnoType(layerType);
   
+  // 航拍视角：地图中心 = 摄像头位置，玩家显示在屏幕偏下
+  const playerScreenY = viewH * PLAYER_SCREEN_Y_RATIO;
+  const cameraOffsetY = viewH / 2 - playerScreenY; // 地图向上偏移，玩家显示在下方
   const cx = lngToPixelX(centerLng, zoom);
   const cy = latToPixelY(centerLat, zoom);
   const tilesX = Math.ceil(viewW / 256) + 2;
@@ -578,142 +597,140 @@ function render() {
   const ctY = Math.floor(cy / 256);
   const maxTile = 1 << zoom;
   
-  // Draw base tiles
+  // 绘制底图瓦片（偏移渲染，使玩家显示在屏幕偏下）
   for (let dy = -Math.floor(tilesY/2); dy <= Math.floor(tilesY/2); dy++) {
     for (let dx = -Math.floor(tilesX/2); dx <= Math.floor(tilesX/2); dx++) {
       const tx = ctX + dx, ty = ctY + dy;
       if (tx < 0 || ty < 0 || tx >= maxTile || ty >= maxTile) continue;
       const px = tx * 256 - cx + viewW/2;
-      const py = ty * 256 - cy + viewH/2;
+      const py = ty * 256 - cy + viewH/2 + cameraOffsetY;
       const img = loadTile(tx, ty, zoom, layerType, proj, endpoint, key);
       if (img) ctx.drawImage(img, px, py, 256, 256);
     }
   }
-  // Draw annotation tiles
+  // 绘制标注瓦片
   for (let dy = -Math.floor(tilesY/2); dy <= Math.floor(tilesY/2); dy++) {
     for (let dx = -Math.floor(tilesX/2); dx <= Math.floor(tilesX/2); dx++) {
       const tx = ctX + dx, ty = ctY + dy;
       if (tx < 0 || ty < 0 || tx >= maxTile || ty >= maxTile) continue;
       const px = tx * 256 - cx + viewW/2;
-      const py = ty * 256 - cy + viewH/2;
+      const py = ty * 256 - cy + viewH/2 + cameraOffsetY;
       const img = loadTile(tx, ty, zoom, annoType, proj, endpoint, key);
       if (img) ctx.drawImage(img, px, py, 256, 256);
     }
   }
   
-  // Draw danger circle (shrinking red zone)
+  // 绘制危险圈（缩小的红色区域）- 使用偏移坐标
   if (destSet && gameRunning) {
     const destScreenX = lngToPixelX(destLng, zoom) - cx + viewW/2;
-    const destScreenY = latToPixelY(destLat, zoom) - cy + viewH/2;
+    const destScreenY = latToPixelY(destLat, zoom) - cy + viewH/2 + cameraOffsetY;
     const metersPerPixel = 156543.03392 * Math.cos(centerLat * Math.PI / 180) / (1 << zoom);
     const circlePixels = circleRadius / metersPerPixel;
     
-    // Red zone outside circle
+    // 圈外红色覆盖
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, viewW, viewH);
     ctx.arc(destScreenX, destScreenY, circlePixels, 0, Math.PI * 2, true);
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+    ctx.fillStyle = 'rgba(255, 30, 30, 0.12)';
     ctx.fill();
     ctx.restore();
     
-    // Circle edge
+    // 圈边缘（渐变发光）
     ctx.beginPath();
     ctx.arc(destScreenX, destScreenY, circlePixels, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 60, 60, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
     ctx.stroke();
+    ctx.setLineDash([]);
     
-    // Destination marker
+    // 目标点
     ctx.beginPath();
-    ctx.arc(destScreenX, destScreenY, 8, 0, Math.PI * 2);
+    ctx.arc(destScreenX, destScreenY, 6, 0, Math.PI * 2);
     ctx.fillStyle = '#ff4444';
     ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(destScreenX, destScreenY, 10, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,68,68,0.4)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     
-    // Shrink circle over time
+    // 缩小圈
     const elapsed = (Date.now() - gameStartTime) / 1000;
     circleRadius = circleRadius * (1 - elapsed * 0.001);
     if (circleRadius < 50) {
-      // Player caught!
       gameRunning = false;
       stopChaseMusic();
       showOverlay('被捕！', '#ff4444');
     }
   }
   
-  // Crosshair at center (player position) - God's Eye View helicopter reticle
-  ctx.strokeStyle = 'rgba(0,191,255,0.4)';
-  ctx.lineWidth = 1;
+  // === 航拍视角：玩家标记（显示在屏幕偏下位置）===
+  const playerX = viewW / 2;
+  const playerY = playerScreenY;
+  
+  // 计算朝向（从当前位置到目标的方位角）
+  if (destSet && gameRunning) {
+    const dLng = destLng - centerLng;
+    const dLat = destLat - centerLat;
+    lastHeading = Math.atan2(dLng, dLat) * 180 / Math.PI;
+  }
+  
+  // 航拍跟踪准星 - 简洁风格
+  ctx.save();
+  ctx.translate(playerX, playerY);
+  
+  // 外圈（呼吸动画）
+  const breathe = 1 + Math.sin(Date.now() / 800) * 0.05;
+  const outerR = 35 * breathe;
   ctx.beginPath();
-  ctx.moveTo(viewW/2 - 12, viewH/2);
-  ctx.lineTo(viewW/2 + 12, viewH/2);
-  ctx.moveTo(viewW/2, viewH/2 - 12);
-  ctx.lineTo(viewW/2, viewH/2 + 12);
+  ctx.arc(0, 0, outerR, 0, Math.PI * 2);
+  ctx.strokeStyle = gameRunning ? 'rgba(0,220,100,0.5)' : 'rgba(100,210,255,0.3)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   
-  // God's Eye: Draw helicopter reticle (circle with crosshairs)
-  if (godEyeMode) {
-    const cx2 = viewW/2, cy2 = viewH/2;
-    const reticleR = 40;
-    
-    // Outer circle
+  // 内圈
+  ctx.beginPath();
+  ctx.arc(0, 0, 12, 0, Math.PI * 2);
+  ctx.strokeStyle = gameRunning ? 'rgba(0,220,100,0.4)' : 'rgba(100,210,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // 十字线（短，不延伸到边缘）
+  const crossLen = 18;
+  const crossGap = 14;
+  ctx.beginPath();
+  ctx.moveTo(-crossLen - crossGap, 0); ctx.lineTo(-crossGap, 0);
+  ctx.moveTo(crossGap, 0); ctx.lineTo(crossLen + crossGap, 0);
+  ctx.moveTo(0, -crossLen - crossGap); ctx.lineTo(0, -crossGap);
+  ctx.moveTo(0, crossGap); ctx.lineTo(0, crossLen + crossGap);
+  ctx.strokeStyle = gameRunning ? 'rgba(0,220,100,0.5)' : 'rgba(100,210,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // 朝向指示箭头（小三角形指向前进方向）
+  if (gameRunning && destSet) {
+    ctx.save();
+    ctx.rotate((lastHeading) * Math.PI / 180);
     ctx.beginPath();
-    ctx.arc(cx2, cy2, reticleR, 0, Math.PI * 2);
-    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.6)' : 'rgba(0,191,255,0.4)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Inner circle
-    ctx.beginPath();
-    ctx.arc(cx2, cy2, reticleR * 0.3, 0, Math.PI * 2);
-    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.4)' : 'rgba(0,191,255,0.3)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Crosshair lines extending from circle
-    ctx.beginPath();
-    ctx.moveTo(cx2 - reticleR - 15, cy2);
-    ctx.lineTo(cx2 - reticleR * 0.4, cy2);
-    ctx.moveTo(cx2 + reticleR * 0.4, cy2);
-    ctx.lineTo(cx2 + reticleR + 15, cy2);
-    ctx.moveTo(cx2, cy2 - reticleR - 15);
-    ctx.lineTo(cx2, cy2 - reticleR * 0.4);
-    ctx.moveTo(cx2, cy2 + reticleR * 0.4);
-    ctx.lineTo(cx2, cy2 + reticleR + 15);
-    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.5)' : 'rgba(0,191,255,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    
-    // Corner brackets (military-style targeting)
-    const bsz = 8;
-    ctx.strokeStyle = gameRunning ? 'rgba(0,255,100,0.7)' : 'rgba(0,191,255,0.5)';
-    ctx.lineWidth = 2;
-    // top-left
-    ctx.beginPath();
-    ctx.moveTo(cx2-reticleR, cy2-reticleR+bsz); ctx.lineTo(cx2-reticleR, cy2-reticleR); ctx.lineTo(cx2-reticleR+bsz, cy2-reticleR);
-    ctx.stroke();
-    // top-right
-    ctx.beginPath();
-    ctx.moveTo(cx2+reticleR-bsz, cy2-reticleR); ctx.lineTo(cx2+reticleR, cy2-reticleR); ctx.lineTo(cx2+reticleR, cy2-reticleR+bsz);
-    ctx.stroke();
-    // bottom-left
-    ctx.beginPath();
-    ctx.moveTo(cx2-reticleR, cy2+reticleR-bsz); ctx.lineTo(cx2-reticleR, cy2+reticleR); ctx.lineTo(cx2-reticleR+bsz, cy2+reticleR);
-    ctx.stroke();
-    // bottom-right
-    ctx.beginPath();
-    ctx.moveTo(cx2+reticleR-bsz, cy2+reticleR); ctx.lineTo(cx2+reticleR, cy2+reticleR); ctx.lineTo(cx2+reticleR, cy2+reticleR-bsz);
-    ctx.stroke();
-    
-    // Altitude/heading info
-    ctx.font = '10px monospace';
-    ctx.fillStyle = 'rgba(0,191,255,0.6)';
-    ctx.fillText(`ALT ${helicopterAltitude}m`, cx2 + reticleR + 5, cy2 - 5);
-    ctx.fillText(`HDG ${Math.round(Math.random() * 360)}°`, cx2 + reticleR + 5, cy2 + 8);
+    ctx.moveTo(0, -outerR - 8);
+    ctx.lineTo(-5, -outerR - 2);
+    ctx.lineTo(5, -outerR - 2);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,220,100,0.6)';
+    ctx.fill();
+    ctx.restore();
   }
+  
+  // 高度和方位信息
+  ctx.font = '10px "SF Mono", monospace';
+  ctx.fillStyle = 'rgba(100,210,255,0.5)';
+  ctx.textAlign = 'left';
+  ctx.fillText(`ALT ${helicopterAltitude}m`, outerR + 8, -4);
+  ctx.fillText(`HDG ${Math.round((lastHeading + 360) % 360)}°`, outerR + 8, 10);
+  
+  ctx.restore();
   
   // Signal loss visual effect
   if (signalLost && gameRunning) {
@@ -780,10 +797,12 @@ function initCanvas() {
     render();
   });
   
-  // Double-click to set destination
+  // 双击设置目的地（考虑航拍偏移）
   canvas.addEventListener('dblclick', e => {
+    const playerScreenY = viewH * PLAYER_SCREEN_Y_RATIO;
+    const cameraOffsetY = viewH / 2 - playerScreenY;
     const px = lngToPixelX(centerLng, zoom) + (e.clientX - viewW/2);
-    const py = latToPixelY(centerLat, zoom) + (e.clientY - viewH/2);
+    const py = latToPixelY(centerLat, zoom) + (e.clientY - viewH/2 - cameraOffsetY);
     destLat = pixelYToLat(py, zoom);
     destLng = pixelXToLng(px, zoom);
     destSet = true;
@@ -832,7 +851,7 @@ function testSingleTile() {
   const tx = Math.floor((centerLng+180)/360*n);
   const ty = Math.floor(latToPixelY(centerLat,zoom)/256);
   const url = buildUrl(tx, ty, zoom, layerType, proj, endpoint, key);
-  fetch(url, {headers: {'X-Requested-With': 'ChaseGame'}})
+  fetch('http://127.0.0.1:18765/tile?url='+encodeURIComponent(url))
     .then(r => { alert(`HTTP ${r.status}, type=${r.headers.get('content-type')}`); return r.blob(); })
     .then(b => alert(`Size: ${b.size} bytes`))
     .catch(e => alert(`Error: ${e.message}`));
@@ -856,8 +875,8 @@ function gameLoop() {
     centerLng += dx * speedFactor;
     centerLat += dy * speedFactor;
     
-    // God's eye: Camera follows player (always centered)
-    if (godEyeMode && !signalLost) {
+    // 航拍视角：摄像头跟随玩家
+    if (aerialMode && !signalLost) {
       cameraLat = centerLat;
       cameraLng = centerLng;
     }
@@ -934,8 +953,8 @@ function gameLoop() {
       setStars(0);
     }
     
-    // Update center position for rendering
-    if (godEyeMode) {
+    // 航拍视角：更新中心位置
+    if (aerialMode) {
       centerLat = cameraLat;
       centerLng = cameraLng;
     }
