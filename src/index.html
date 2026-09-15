@@ -346,6 +346,24 @@ function stopChaseMusic() {
   musicPlaying = false;
 }
 
+// === ARREST & STAR CLEAR MUSIC ===
+const arrestMusic = new Audio('audio_arrested.m4a');
+arrestMusic.volume = 0.8;
+const starClearMusic = new Audio('audio_star_clear.m4a');
+starClearMusic.volume = 0.8;
+
+function playArrestMusic() {
+  stopChaseMusic();
+  arrestMusic.currentTime = 0;
+  arrestMusic.play().catch(e => console.log('Arrest audio failed:', e));
+}
+
+function playStarClearMusic() {
+  stopChaseMusic();
+  starClearMusic.currentTime = 0;
+  starClearMusic.play().catch(e => console.log('Star clear audio failed:', e));
+}
+
 // === STICKER DATA (base64 embedded) ===
 const STICKERS = {
   "bear_driver": "sticker/panda_driver_nobg.png",
@@ -662,6 +680,7 @@ function render() {
     if (circleRadius < 50) {
       gameRunning = false;
       stopChaseMusic();
+      playArrestMusic();
       showOverlay('被捕！', '#ff4444');
     }
   }
@@ -938,6 +957,7 @@ function gameLoop() {
         gameRunning = false;
         signalLost = false;
         stopChaseMusic();
+        playStarClearMusic();
         document.getElementById('signal-loss-indicator').style.display = 'none';
         showOverlay('★ 消星成功 ★\n目标丢失60秒', '#00ff00');
         setStars(0);
@@ -949,6 +969,7 @@ function gameLoop() {
     if (dist < 100 && !signalLost) { // Within 100m and signal OK
       gameRunning = false;
       stopChaseMusic();
+      playStarClearMusic();
       showOverlay('★ 消星成功 ★', '#00ff00');
       setStars(0);
     }
