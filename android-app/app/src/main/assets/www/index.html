@@ -317,6 +317,143 @@ canvas#map:active { cursor: grabbing; }
   <div id="debug-stats">瓦片: OK=0 Fail=0 Load=0</div>
 </div>
 
+<!-- 高德风格逃跑目的地选择器 -->
+<div id="dest-picker" style="display:none;">
+  <div id="dest-picker-header">
+    <div id="dest-picker-title">选择逃跑目的地</div>
+    <div id="dest-picker-search-wrap">
+      <input type="text" id="dest-picker-search" placeholder="搜索目的地..." autocomplete="off" />
+    </div>
+  </div>
+  <div id="dest-picker-tabs">
+    <div class="dest-tab active" data-cat="all">全部</div>
+    <div class="dest-tab" data-cat="airport">机场</div>
+    <div class="dest-tab" data-cat="border">边境</div>
+    <div class="dest-tab" data-cat="safehouse">安全屋</div>
+    <div class="dest-tab" data-cat="harbor">港口</div>
+    <div class="dest-tab" data-cat="hideout">藏身处</div>
+  </div>
+  <div id="dest-picker-list"></div>
+  <div id="dest-picker-confirm" style="display:none;">
+    <div id="dest-picker-selected-info"></div>
+    <button id="dest-picker-go" onclick="confirmDestination()">开始逃跑</button>
+  </div>
+</div>
+<style>
+#dest-picker {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 380px; max-height: 80vh;
+  background: rgba(18,22,36,0.96);
+  border: 1px solid rgba(100,210,255,0.25);
+  border-radius: 16px;
+  z-index: 50;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(0,120,255,0.08);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+#dest-picker-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(100,210,255,0.1);
+}
+#dest-picker-title {
+  font-size: 16px; font-weight: 700; color: #e8ecf4;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+#dest-picker-title::before {
+  content: '🚁';
+  font-size: 18px;
+}
+#dest-picker-search-wrap {
+  position: relative;
+}
+#dest-picker-search {
+  width: 100%; padding: 10px 14px 10px 36px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(100,210,255,0.2);
+  border-radius: 10px;
+  color: #e8ecf4; font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#dest-picker-search:focus {
+  border-color: #64d2ff;
+  background: rgba(255,255,255,0.08);
+}
+#dest-picker-search::placeholder { color: rgba(100,210,255,0.4); }
+#dest-picker-search-wrap::before {
+  content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; pointer-events: none;
+}
+#dest-picker-tabs {
+  display: flex; gap: 0; padding: 8px 12px 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(100,210,255,0.08);
+}
+.dest-tab {
+  padding: 6px 12px; font-size: 12px; color: rgba(200,220,240,0.5);
+  cursor: pointer; white-space: nowrap; border-radius: 8px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.dest-tab:hover { color: rgba(200,220,240,0.8); background: rgba(100,210,255,0.06); }
+.dest-tab.active {
+  color: #64d2ff; background: rgba(100,210,255,0.12);
+  font-weight: 600;
+}
+#dest-picker-list {
+  flex: 1; overflow-y: auto; padding: 6px 0;
+  max-height: 340px;
+}
+#dest-picker-list::-webkit-scrollbar { width: 4px; }
+#dest-picker-list::-webkit-scrollbar-thumb { background: rgba(100,210,255,0.2); border-radius: 4px; }
+.dest-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid rgba(100,210,255,0.04);
+}
+.dest-item:hover { background: rgba(100,210,255,0.06); }
+.dest-item.selected { background: rgba(100,210,255,0.1); }
+.dest-item-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(100,210,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.dest-item-info { flex: 1; min-width: 0; }
+.dest-item-name { font-size: 14px; font-weight: 600; color: #e8ecf4; margin-bottom: 2px; }
+.dest-item-desc { font-size: 11px; color: rgba(100,210,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dest-item-meta { text-align: right; flex-shrink: 0; }
+.dest-item-dist { font-size: 13px; font-weight: 600; color: #64d2ff; }
+.dest-item-eta { font-size: 10px; color: rgba(200,220,240,0.4); }
+#dest-picker-confirm {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(100,210,255,0.1);
+  background: rgba(10,14,26,0.6);
+}
+#dest-picker-selected-info {
+  font-size: 13px; color: #e8ecf4; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+#dest-picker-go {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, #0066ff 0%, #0099ff 100%);
+  border: none; border-radius: 10px;
+  color: #fff; font-size: 15px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(0,100,255,0.3);
+}
+#dest-picker-go:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,100,255,0.4);
+}
+#dest-picker-go:active { transform: translateY(0); }
+</style>
+
 <script>
 // === CHASE MUSIC ===
 const chaseMusic = [
@@ -593,6 +730,119 @@ setInterval(() => {
 
 let gameStartTime = 0;
 
+// === DESTINATION PICKER (高德风格) ===
+const DESTINATIONS = [
+  // 机场
+  { name: 'LAX 洛杉矶国际机场', desc: '国际航班，可飞往亚洲', cat: 'airport', icon: '✈️', lat: 33.9425, lng: -118.4081 },
+  { name: 'McCarran 拉斯维加斯机场', desc: '大量国内航班，安检宽松', cat: 'airport', icon: '✈️', lat: 36.0840, lng: -115.1537 },
+  { name: 'Sky Harbor 凤凰城机场', desc: '西南枢纽，人流密集', cat: 'airport', icon: '✈️', lat: 33.4373, lng: -112.0078 },
+  { name: 'SAN 圣迭戈国际机场', desc: '靠近墨西哥边境', cat: 'airport', icon: '✈️', lat: 32.7338, lng: -117.1933 },
+  { name: 'SFO 旧金山国际机场', desc: '太平洋航线，可飞往海外', cat: 'airport', icon: '✈️', lat: 37.6213, lng: -122.3790 },
+  // 边境
+  { name: '圣伊西德罗口岸', desc: '美墨最大陆路口岸，车流密集', cat: 'border', icon: '🛂', lat: 32.5407, lng: -117.0297 },
+  { name: '诺加利斯口岸', desc: '亚利桑那边境，沙漠路线', cat: 'border', icon: '🛂', lat: 31.3349, lng: -110.9373 },
+  { name: '埃尔帕索口岸', desc: '德州边境，通往华雷斯', cat: 'border', icon: '🛂', lat: 31.7587, lng: -106.4867 },
+  { name: '德克萨斯口岸', desc: '新墨西哥州边境小镇', cat: 'border', icon: '🛂', lat: 31.7837, lng: -106.4465 },
+  // 安全屋
+  { name: '棕榈泉安全屋', desc: '沙漠绿洲，低调试点', cat: 'safehouse', icon: '🏠', lat: 33.8303, lng: -116.5453 },
+  { name: '约书亚树藏身点', desc: '国家公园边缘，信号盲区', cat: 'safehouse', icon: '🏠', lat: 34.1347, lng: -116.3131 },
+  { name: '赛多纳安全屋', desc: '红岩峡谷，隐蔽性极佳', cat: 'safehouse', icon: '🏠', lat: 34.8697, lng: -111.7610 },
+  { name: '大熊湖小屋', desc: '山区据点，冬季封路人少', cat: 'safehouse', icon: '🏠', lat: 34.2439, lng: -116.9114 },
+  // 港口
+  { name: '长滩港', desc: '集装箱码头，可搭货船', cat: 'harbor', icon: '🚢', lat: 33.7529, lng: -118.1907 },
+  { name: '圣迭戈港', desc: '军港混入，游艇码头', cat: 'harbor', icon: '🚢', lat: 32.7136, lng: -117.1720 },
+  { name: '圣佩德罗渔港', desc: '渔船停靠，可出海', cat: 'harbor', icon: '🚢', lat: 33.7359, lng: -118.2923 },
+  // 藏身处
+  { name: '莫哈韦沙漠营地', desc: '荒漠深处，人迹罕至', cat: 'hideout', icon: '⛺', lat: 35.0053, lng: -115.5045 },
+  { name: '死亡谷隐蔽点', desc: '极端高温区，无人追踪', cat: 'hideout', icon: '⛺', lat: 36.5054, lng: -117.0794 },
+  { name: '索尔顿湖废墟', desc: '废弃小镇，完全荒废', cat: 'hideout', icon: '⛺', lat: 33.0397, lng: -115.5578 },
+  { name: '66号公路废弃加油站', desc: '经典逃亡路线，补给点', cat: 'hideout', icon: '⛺', lat: 34.8381, lng: -115.1466 },
+];
+
+let selectedDest = null;
+
+function showDestPicker() {
+  document.getElementById('dest-picker').style.display = 'flex';
+  renderDestList('all', '');
+  // Tab click handlers
+  document.querySelectorAll('.dest-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.dest-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const searchVal = document.getElementById('dest-picker-search').value.toLowerCase();
+      renderDestList(tab.dataset.cat, searchVal);
+    };
+  });
+  // Search input
+  document.getElementById('dest-picker-search').oninput = (e) => {
+    const activeCat = document.querySelector('.dest-tab.active').dataset.cat;
+    renderDestList(activeCat, e.target.value.toLowerCase());
+  };
+}
+
+function renderDestList(cat, search) {
+  const list = document.getElementById('dest-picker-list');
+  let filtered = DESTINATIONS;
+  if (cat !== 'all') filtered = filtered.filter(d => d.cat === cat);
+  if (search) filtered = filtered.filter(d => d.name.toLowerCase().includes(search) || d.desc.toLowerCase().includes(search));
+  
+  list.innerHTML = filtered.map((d, i) => {
+    const dist = haversine(centerLat, centerLng, d.lat, d.lng);
+    const distKm = (dist / 1000).toFixed(1);
+    const etaMin = Math.round(dist / 1000 / 80 * 60); // 80km/h avg
+    const isSelected = selectedDest && selectedDest.name === d.name;
+    return `<div class="dest-item${isSelected ? ' selected' : ''}" onclick="selectDest(${DESTINATIONS.indexOf(d)})">
+      <div class="dest-item-icon">${d.icon}</div>
+      <div class="dest-item-info">
+        <div class="dest-item-name">${d.name}</div>
+        <div class="dest-item-desc">${d.desc}</div>
+      </div>
+      <div class="dest-item-meta">
+        <div class="dest-item-dist">${distKm} km</div>
+        <div class="dest-item-eta">≈${etaMin > 60 ? Math.floor(etaMin/60) + 'h' + (etaMin%60) + 'm' : etaMin + 'min'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center; padding:30px; color:rgba(100,210,255,0.4); font-size:13px;">未找到匹配目的地</div>';
+  }
+}
+
+function selectDest(idx) {
+  selectedDest = DESTINATIONS[idx];
+  // Highlight selected
+  document.querySelectorAll('.dest-item').forEach(el => el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  // Show confirm bar
+  const dist = haversine(centerLat, centerLng, selectedDest.lat, selectedDest.lng);
+  const distKm = (dist / 1000).toFixed(1);
+  const etaMin = Math.round(dist / 1000 / 80 * 60);
+  document.getElementById('dest-picker-selected-info').innerHTML = 
+    `<span style="font-size:18px">${selectedDest.icon}</span>
+     <span><b>${selectedDest.name}</b> · ${distKm}km · ≈${etaMin > 60 ? Math.floor(etaMin/60) + 'h' + (etaMin%60) + 'm' : etaMin + 'min'}</span>`;
+  document.getElementById('dest-picker-confirm').style.display = 'block';
+}
+
+function confirmDestination() {
+  if (!selectedDest) return;
+  destLat = selectedDest.lat;
+  destLng = selectedDest.lng;
+  destSet = true;
+  // Hide picker
+  document.getElementById('dest-picker').style.display = 'none';
+  // Calculate initial circle radius
+  const dist = haversine(centerLat, centerLng, destLat, destLng);
+  circleRadius = dist * 1.1;
+  // Start game
+  gameRunning = true;
+  gameStartTime = Date.now();
+  setStars(1);
+  startChaseMusic();
+  showOverlay('出发！目标: ' + selectedDest.name.split(' ')[0], '#00BFFF');
+  render();
+}
+
 // === RENDER ===
 function render() {
   ctx.fillStyle = '#0a0e1a';
@@ -816,25 +1066,11 @@ function initCanvas() {
     render();
   });
   
-  // 双击设置目的地（考虑航拍偏移）
+  // 双击打开目的地选择器（高德风格）
   canvas.addEventListener('dblclick', e => {
-    const playerScreenY = viewH * PLAYER_SCREEN_Y_RATIO;
-    const cameraOffsetY = viewH / 2 - playerScreenY;
-    const px = lngToPixelX(centerLng, zoom) + (e.clientX - viewW/2);
-    const py = latToPixelY(centerLat, zoom) + (e.clientY - viewH/2 - cameraOffsetY);
-    destLat = pixelYToLat(py, zoom);
-    destLng = pixelXToLng(px, zoom);
-    destSet = true;
-    // Calculate initial circle radius
-    const dist = haversine(centerLat, centerLng, destLat, destLng);
-    circleRadius = dist * 1.1;
-    // Start game
-    gameRunning = true;
-    gameStartTime = Date.now();
-    setStars(1);
-    startChaseMusic();
-    showOverlay('出发！', '#00BFFF');
-    render();
+    if (!gameRunning) {
+      showDestPicker();
+    }
   });
   
   window.addEventListener('resize', () => {
@@ -883,6 +1119,9 @@ document.getElementById('zoom-range').addEventListener('input', e => {
 // === INIT ===
 initCanvas();
 render();
+
+// 自动弹出目的地选择器
+setTimeout(() => showDestPicker(), 1500);
 
 // Animation loop for game state
 function gameLoop() {
