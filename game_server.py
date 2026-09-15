@@ -5,7 +5,7 @@ import urllib.request
 import os
 
 PORT = 8877
-TIANDITU_KEY = "YOUR_TIANDITU_KEY_HERE"
+TIANDITU_KEY = os.environ.get("TIANDITU_KEY", "")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src')
 
 class GameHandler(http.server.SimpleHTTPRequestHandler):

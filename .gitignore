@@ -8,3 +8,6 @@ test_screenshots/
 local.properties
 .gradle/
 build/
+
+.env
+*.env
