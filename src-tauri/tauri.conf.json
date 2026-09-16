@@ -1,5 +1,5 @@
 {
-  "productName": "最后的自由",
+  "productName": "Last Freedom",
   "version": "3.0.0",
   "identifier": "com.chasegame.app",
   "build": {
@@ -28,11 +28,6 @@
       "icons/128x128.png",
       "icons/256x256.png",
       "icons/icon.png"
-    ],
-    "linux": {
-      "deb": {
-        "packageName": "last-freedom"
-      }
-    }
+    ]
   }
 }
