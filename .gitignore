@@ -17,10 +17,8 @@ Thumbs.db
 *.exe
 *.dmg
 
-# Gradle
-android-app/.gradle/
-android-app/app/build/
-android-app/local.properties
+# Tauri Android generated
+src-tauri/gen/android/
 
 # Test files
 test-screenshots/
