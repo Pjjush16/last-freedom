@@ -1,19 +1,28 @@
 {
   "productName": "最后的自由",
-  "version": "2.0.0",
-  "identifier": "com.chasegame.linux",
+  "version": "3.0.0",
+  "identifier": "com.chasegame.app",
   "build": {
     "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [],
+    "windows": [
+      {
+        "title": "争取最后的自由",
+        "width": 1366,
+        "height": 768,
+        "resizable": true,
+        "url": "index.html"
+      }
+    ],
     "security": {
       "csp": null
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
+    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

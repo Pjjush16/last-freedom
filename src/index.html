@@ -111,13 +111,16 @@ canvas#map:active{cursor:grabbing}
 <div id="dbg-stats">瓦片: OK=0 Fail=0 Load=0</div>
 </div>
 <script>
+// Tile fetch helper - Tauri invoke (embedded) or direct fetch
+const isTauri=!!(window.__TAURI__&&window.__TAURI__.invoke);
+async function fetchTileUrl(url){if(isTauri){const bytes=await window.__TAURI__.invoke("fetch_tile",{url});return new Blob([new Uint8Array(bytes)],{type:"image/png"})}const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.blob()}
 const CM=[new Audio('music/cmon.m4a'),new Audio('music/she_makes_me_go.m4a')];
 CM.forEach(m=>{m.loop=true;m.volume=.7});
 let mPlay=false;
 function startM(){if(mPlay)return;CM[0].play().catch(()=>{});mPlay=true;CM.forEach((m,i)=>{m.onended=()=>{CM[(i+1)%CM.length].play().catch(()=>{})}})}
 function stopM(){CM.forEach(m=>{m.pause();m.currentTime=0});mPlay=false}
-const aM=new Audio('audio_arrested.m4a');aM.volume=.8;
-const sM=new Audio('audio_star_clear.m4a');sM.volume=.8;
+const aM=new Audio('music/arrest_music.m4a');aM.volume=.8;
+const sM=new Audio('music/star_clear_music.m4a');sM.volume=.8;
 const SK={b:'sticker/panda_driver_nobg.png',g:'sticker/anime_girl_nobg.png',gv:'sticker/anime_girl_variant_raw.png',p:'sticker/panda_running_raw.png'};
 const SS=[{l:'b',r:'g'},{l:'p',r:'gv'},{l:'b',r:'gv'},{l:'p',r:'g'}];
 let si=0;
@@ -135,7 +138,7 @@ function x2l(p,z){return p/((1<<z)*256)*360-180}
 function y2a(p,z){return Math.atan(Math.sinh(Math.PI*(1-2*p/((1<<z)*256))))*180/Math.PI}
 function bU(x,y,z,lt,pj,k){const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=${lt}_${pj}&X=${x}&Y=${y}&L=${z}&tk=${k}`}
 function aT(t){return{img:'cia',vec:'cva'}[t]||'cia'}
-function lT(x,y,z,lt,pj){const k=document.getElementById('ki').value.trim();if(!k)return null;const c=`${lt}/${pj}/${z}/${x}/${y}`;if(tC[c])return tC[c];if(tF[c]>=3)return null;if(lS.has(c))return null;const u=bU(x,y,z,lt,pj,k);lS.add(c);st.ld++;uSt();fetch('http://127.0.0.1:18765/tile?url='+encodeURIComponent(u)).then(r=>{if(!r.ok)throw new Error(r.status);return r.blob()}).then(b=>{const bu=URL.createObjectURL(b);const i=new Image();i.onload=()=>{tC[c]=i;tF[c]=0;st.ok++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};i.onerror=()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};i.src=bu}).catch(()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render()});return null}
+function lT(x,y,z,lt,pj){const k=document.getElementById('ki').value.trim();if(!k)return null;const c=`${lt}/${pj}/${z}/${x}/${y}`;if(tC[c])return tC[c];if(tF[c]>=3)return null;if(lS.has(c))return null;const u=bU(x,y,z,lt,pj,k);lS.add(c);st.ld++;uSt();fetchTileUrl(u).then(b=>{const bu=URL.createObjectURL(b);const i=new Image();i.onload=()=>{tC[c]=i;tF[c]=0;st.ok++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};i.onerror=()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};i.src=bu}).catch(()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render()});return null}
 function uSt(){document.getElementById('dbg-stats').textContent=`瓦片: OK=${st.ok} Fail=${st.fl} Load=${st.ld}`}
 const rds=["I-210 E PASADENA FWY","US-101 S HOLLYWOOD FWY","I-110 HARBOR FWY","CA-1 PACIFIC COAST HWY","I-405 SAN DIEGO FWY","US-66 HISTORIC ROUTE","SANTA MONICA BLVD","SUNSET BOULEVARD","WILSHIRE BLVD"];
 let ri=0;setInterval(()=>{ri=(ri+1)%rds.length;document.getElementById('rd-n').textContent=rds[ri]},10000);
@@ -176,7 +179,7 @@ cx.font='10px "SF Mono",monospace';cx.fillStyle='rgba(148,163,184,0.5)';cx.textA
 if(sigL&&gRun){cx.save();cx.globalAlpha=.06+Math.random()*.04;for(let i=0;i<150;i++){cx.fillStyle=Math.random()>.5?'#fff':'#000';cx.fillRect(Math.random()*vW,Math.random()*vH,2+Math.random()*3,1)}cx.restore()}}
 function showOv(t,c,s){const e=document.getElementById('ov');document.getElementById('ov-t').textContent=t;document.getElementById('ov-t').style.color=c;document.getElementById('ov-s').textContent=s||'';e.className='show';setTimeout(()=>e.className='',3000)}
 function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};render()}
-function testTile(){const k=document.getElementById('ki').value.trim();if(!k){alert('请输入天地图 Key');return}const lt=document.getElementById('lt').value;const pj=document.getElementById('pj').value;const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);const u=bU(tx,ty,z,lt,pj,k);fetch('http://127.0.0.1:18765/tile?url='+encodeURIComponent(u)).then(r=>alert(`HTTP ${r.status}`)).catch(e=>alert(`Error: ${e.message}`))}
+function testTile(){const k=document.getElementById('ki').value.trim();if(!k){alert('请输入天地图 Key');return}const lt=document.getElementById('lt').value;const pj=document.getElementById('pj').value;const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);const u=bU(tx,ty,z,lt,pj,k);fetchTileUrl(u).then(()=>alert('HTTP 200')).catch(e=>alert('Error: '+e.message))}
 document.getElementById('zr').addEventListener('input',e=>{document.getElementById('zl').textContent=e.target.value});
 function gameLoop(){if(gRun){const dx=dLng-cLng,dy=dLat-cLat;const sf=gSpd*.0000002;cLng+=dx*sf;cLat+=dy*sf;
 const d=hav(cLat,cLng,lkL,lkN);if(lSig===0){lkL=cLat;lkN=cLng;lSig=Date.now()}

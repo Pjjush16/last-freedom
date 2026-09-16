@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Job 1: Build plain Android WebView app
+  # Job 1: Build plain Android WebView app (lightweight)
   build-android-app:
     runs-on: ubuntu-latest
     defaults:
@@ -21,7 +21,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK manually
+      - name: Set up Android SDK
         run: |
           export ANDROID_HOME=$HOME/android-sdk
           mkdir -p $ANDROID_HOME/cmdline-tools
@@ -39,18 +39,15 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: chase-game-webview-debug-apk
+          name: chase-game-webview-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
 
-  # Job 2: Build Tauri Android app
+  # Job 2: Build Tauri Android (arm64 only, much smaller)
   build-tauri-android:
     runs-on: ubuntu-latest
     steps:
@@ -65,7 +62,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2" --locked
@@ -80,27 +77,22 @@ jobs:
           mv cmdline-tools latest
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --licenses > /dev/null 2>&1
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" "ndk;26.1.10909125"
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" "platform-tools"
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
           echo "NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
 
-      - name: Initialize Tauri Android
+      - name: Build Tauri Android (arm64+armv7 only)
         run: |
-          cd src-tauri
-          cargo tauri android init
-
-      - name: Build Tauri Android APK (debug-signed for installability)
-        run: |
-          cd src-tauri
-          cargo tauri android build --apk --debug --target aarch64
+          cargo tauri android build --apk --target aarch64
+          cargo tauri android build --apk --target armv7
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           NDK_HOME: ${{ env.NDK_HOME }}
 
-      - name: Upload Tauri APK
+      - name: Upload Tauri APKs
         uses: actions/upload-artifact@v4
         with:
-          name: chase-game-tauri-debug-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/universal/debug/*.apk
+          name: chase-game-tauri-apks
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk

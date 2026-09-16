@@ -1,13 +1,32 @@
+# Dependencies
 node_modules/
-target/
+src-tauri/target/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
 *.apk
-*.tar.gz
+*.deb
+*.AppImage
+*.exe
+*.dmg
+
+# Gradle
+android-app/.gradle/
+android-app/app/build/
+android-app/local.properties
+
+# Test files
 test-screenshots/
 test_screenshots/
-.DS_Store
-local.properties
-.gradle/
-build/
+测试结果截图*
 
+# Environment
 .env
-*.env
+.env.local
