@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>争取最后的自由</title>
+<title>争取最后的自由 - bilibili</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -36,8 +36,9 @@ canvas#map:active{cursor:grabbing}
 @keyframes popIn{0%{transform:scale(0.8);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
 @keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.08);opacity:1}}
 
-/* ===== Top Status Bar (高德式) ===== */
+/* ===== Top Status Bar (车机风格) ===== */
 #top-bar{
   position:fixed;top:12px;left:12px;right:12px;
   display:flex;align-items:center;gap:12px;
@@ -77,7 +78,7 @@ canvas#map:active{cursor:grabbing}
 #rd-s{font-size:11px;color:var(--dim);font-family:var(--m);font-variant-numeric:tabular-nums}
 #rd-s b{color:var(--accent);font-weight:600}
 
-/* 状态指示（星星 + 信号） */
+/* 状态指示（星星 + LIVE） */
 #status{
   display:flex;align-items:center;gap:8px;
   background:var(--panel);
@@ -98,16 +99,65 @@ canvas#map:active{cursor:grabbing}
   margin-left:4px;
   box-shadow:0 0 8px var(--danger);
 }
+#live-txt{font-size:10px;font-weight:800;color:var(--danger);letter-spacing:1px;margin-left:2px}
 
-/* ===== 中央航拍准星 ===== */
-#reticle{
-  position:fixed;top:65%;left:50%;
-  transform:translate(-50%,-50%);
-  z-index:15;pointer-events:none;
-  animation:fadeIn .6s ease-out .3s both;
+/* ===== 贴纸（左下角 + 右下角） ===== */
+.stk{
+  position:fixed;z-index:12;pointer-events:none;
+  animation:breathe 4s ease-in-out infinite;
+}
+#stk-l{bottom:120px;left:16px;width:90px;height:90px}
+#stk-r{bottom:120px;right:16px;width:90px;height:90px}
+.stk img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5))}
+
+/* ===== 水印 ===== */
+#watermark{
+  position:fixed;top:14px;right:200px;z-index:25;
+  font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);
+  letter-spacing:1px;pointer-events:none;
 }
 
-/* ===== 底部目的地面板（高德式） ===== */
+/* ===== 安全警告 ===== */
+#safe{
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);
+  z-index:25;
+  font-size:10px;font-weight:600;color:rgba(255,184,77,0.7);
+  background:rgba(255,184,77,0.08);
+  border:1px solid rgba(255,184,77,0.15);
+  padding:6px 16px;border-radius:20px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  pointer-events:none;
+  animation:fadeIn .6s ease-out .5s both;
+}
+
+/* ===== 押韵字幕条 ===== */
+#sub{
+  position:fixed;top:90px;left:50%;transform:translateX(-50%);
+  z-index:15;text-align:center;pointer-events:none;
+  animation:fadeIn .4s ease-out;
+}
+#sub-t{
+  font-size:14px;font-weight:700;color:#fff;
+  background:rgba(20,26,38,0.85);
+  padding:10px 24px;border-radius:24px;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  letter-spacing:1px;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  transition:all .3s;
+}
+#sub-t::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 8px var(--accent);
+  animation:pulse 1.5s infinite;
+}
+#sub-t.idle::before{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+#sub-t.chase::before{background:var(--danger);box-shadow:0 0 8px var(--danger)}
+#sub-t.win::before{background:var(--navi);box-shadow:0 0 8px var(--navi)}
+
+/* ===== 底部逃跑目的地面板（车机风格） ===== */
 #dest-card{
   position:fixed;bottom:16px;left:16px;right:16px;
   z-index:20;
@@ -145,38 +195,10 @@ canvas#map:active{cursor:grabbing}
 }
 #dest-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);background-size:200% 100%;animation:shimmer 3s infinite}
 #dest-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--accent-g)}
-#dest-btn.go{background:linear-gradient(135deg,var(--navi),#16a34a);box-shadow:0 4px 16px var(--navi-g)}
-#dest-btn.stop{background:linear-gradient(135deg,var(--danger),#dc2626);box-shadow:0 4px 16px rgba(255,87,87,0.4)}
+#dest-btn.go{background:linear-gradient(135deg,var(--danger),#dc2626);box-shadow:0 4px 16px rgba(255,87,87,0.4)}
+#dest-btn.stop{background:linear-gradient(135deg,var(--warn),#d97706);box-shadow:0 4px 16px rgba(255,184,77,0.4)}
 
-/* ===== 贴纸（已移除） ===== */
-.stk{display:none}
-
-/* ===== 状态提示条（导航式，替代大字幕） ===== */
-#sub{
-  position:fixed;top:100px;left:50%;transform:translateX(-50%);
-  z-index:15;text-align:center;pointer-events:none;
-  animation:fadeIn .4s ease-out;
-}
-#sub-t{
-  font-size:13px;font-weight:600;color:#fff;
-  background:rgba(20,26,38,0.85);
-  padding:10px 20px;border-radius:24px;
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border:1px solid var(--border);
-  letter-spacing:0.5px;
-  display:flex;align-items:center;gap:8px;
-  box-shadow:0 4px 16px rgba(0,0,0,0.3);
-}
-#sub-t::before{
-  content:'';width:6px;height:6px;border-radius:50%;
-  background:var(--navi);box-shadow:0 0 8px var(--navi);
-  animation:pulse 1.5s infinite;
-}
-#sub-t.idle::before{background:var(--accent);box-shadow:0 0 8px var(--accent)}
-#sub-t.danger::before{background:var(--danger);box-shadow:0 0 8px var(--danger)}
-
-/* ===== 目的地选择弹窗（高德式） ===== */
+/* ===== 目的地选择弹窗 ===== */
 #sp{
   display:none;
   position:fixed;bottom:0;left:0;right:0;
@@ -251,7 +273,7 @@ canvas#map:active{cursor:grabbing}
 #sig-lbl{font-size:16px;font-weight:700;color:var(--danger);animation:pulse 1s infinite}
 #sig-tmr{font-size:52px;font-weight:800;color:var(--danger);font-family:var(--m);margin-top:6px}
 
-/* ===== 右侧悬浮控制组（高德式） ===== */
+/* ===== 右侧悬浮控制组 ===== */
 #controls{
   position:fixed;right:14px;top:50%;transform:translateY(-50%);
   z-index:25;display:flex;flex-direction:column;gap:10px;
@@ -290,24 +312,21 @@ canvas#map:active{cursor:grabbing}
 #dbg button{width:100%;padding:9px;margin-top:8px;background:rgba(79,156,255,0.1);color:var(--accent);border:1px solid rgba(79,156,255,0.2);border-radius:10px;cursor:pointer;font-size:11px;font-family:var(--f)}
 #dbg button:hover{background:rgba(79,156,255,0.2)}
 #dbg-stats{font-family:var(--m);color:var(--muted);font-size:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-
-/* ===== 隐藏旧元素 ===== */
-#info,#safe,#hint,#status{display:none}
 </style>
 </head>
 <body>
 <canvas id="map"></canvas>
 
-<!-- 顶部：高德式导航信息卡 -->
+<!-- 顶部：速度 + 道路 + 星星 -->
 <div id="top-bar">
   <div id="nav-card">
     <div id="speed-ring">
       <div id="spd-n">0</div>
-      <div id="spd-u">km/h</div>
+      <div id="spd-u">MPH</div>
     </div>
     <div id="nav-info">
-      <div id="rd-n">选择目的地</div>
-      <div id="rd-s">双击地图 或 点击底部按钮</div>
+      <div id="rd-n">等待出发</div>
+      <div id="rd-s">点击地图选择逃跑目的地</div>
     </div>
   </div>
   <div id="status">
@@ -316,26 +335,30 @@ canvas#map:active{cursor:grabbing}
     <span class="star" id="s5">★</span><span class="star" id="s6">★</span>
     <span class="star" id="s7">★</span>
     <div id="live-dot"></div>
+    <span id="live-txt">LIVE</span>
   </div>
 </div>
 
-<!-- 贴纸（小装饰，不喧宾夺主） -->
+<!-- 水印 -->
+<div id="watermark">争取最后的自由 · bilibili</div>
+
+<!-- 安全警告 -->
+<div id="safe">⚠ 剧情演绎 请勿模仿</div>
+
+<!-- 贴纸（左下角 + 右下角） -->
 <div class="stk" id="stk-l"><img id="stk-li" src="" alt=""></div>
 <div class="stk" id="stk-r"><img id="stk-ri" src="" alt=""></div>
 
-<!-- 大字幕 -->
-<div id="sub"><div id="sub-t" class="idle">准备出发</div></div>
+<!-- 押韵字幕条 -->
+<div id="sub"><div id="sub-t" class="idle">给我闹！</div></div>
 
-<!-- 进度条 -->
-<div id="progress-wrap"><div id="progress-bar"></div></div>
-
-<!-- 底部目的地面板（高德式） -->
+<!-- 底部逃跑目的地面板 -->
 <div id="dest-card">
-  <div id="dest-icon">📍</div>
+  <div id="dest-icon">🚁</div>
   <div id="dest-body">
-    <div id="dest-label">目的地</div>
+    <div id="dest-label">逃跑目的地</div>
     <div id="dest-name">未选择</div>
-    <div id="dest-meta">点击地图或按钮选择目的地</div>
+    <div id="dest-meta">点击地图选择逃跑目的地</div>
   </div>
   <button id="dest-btn" onclick="openSP()">选择目的地</button>
 </div>
@@ -368,11 +391,11 @@ canvas#map:active{cursor:grabbing}
 <div id="sp">
   <button id="sp-close" onclick="closeSP()">✕</button>
   <div id="sp-hd">
-    <h2>📍 选择目的地</h2>
+    <h2>🚁 选择逃跑目的地</h2>
     <input type="text" id="sp-inp" placeholder="输入坐标 (如 34.05, -118.25) 或关闭后点击地图" autocomplete="off">
   </div>
   <div id="sp-hint">
-    关闭此面板后，<b>单击地图任意位置</b>即可设为目的地<br>
+    关闭此面板后，<b>单击地图任意位置</b>即可设为逃跑目的地<br>
     也可直接输入经纬度坐标后按回车
   </div>
 </div>
@@ -390,10 +413,11 @@ canvas#map:active{cursor:grabbing}
 </div>
 
 <script>
-// Tile fetch helper - Tauri invoke (embedded) or direct fetch
+// Tile fetch - Tauri invoke or direct fetch
 const isTauri=!!(window.__TAURI__&&window.__TAURI__.invoke);
 async function fetchTileUrl(url){if(isTauri){const bytes=await window.__TAURI__.invoke("fetch_tile",{url});return new Blob([new Uint8Array(bytes)],{type:"image/png"})}const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.blob()}
 
+// ===== 音乐 =====
 const CM=[new Audio('music/cmon.m4a'),new Audio('music/she_makes_me_go.m4a')];
 CM.forEach(m=>{m.loop=true;m.volume=.7});
 let mPlay=false;
@@ -402,39 +426,29 @@ function stopM(){CM.forEach(m=>{m.pause();m.currentTime=0});mPlay=false}
 const aM=new Audio('music/arrest_music.m4a');aM.volume=.8;
 const sM=new Audio('music/star_clear_music.m4a');sM.volume=.8;
 
+// ===== 贴纸轮换 =====
 const SK={b:'sticker/panda_driver_nobg.png',g:'sticker/anime_girl_nobg.png',gv:'sticker/anime_girl_variant_raw.png',p:'sticker/panda_running_raw.png'};
 const SS=[{l:'b',r:'g'},{l:'p',r:'gv'},{l:'b',r:'gv'},{l:'p',r:'g'}];
 let si=0;
 function rotS(){si=(si+1)%SS.length;document.getElementById('stk-li').src=SK[SS[si].l];document.getElementById('stk-ri').src=SK[SS[si].r]}
 (function(){document.getElementById('stk-li').src=SK[SS[0].l];document.getElementById('stk-ri').src=SK[SS[0].r];setInterval(rotS,30000)})();
 
+// ===== 押韵字幕（来自原视频弹幕） =====
 const caps=["警灯一开，悠哉悠哉","赶快去拿纸，蹲下就开始","全速怕什么怕","给我闹！","奋力踩踩踩","细妹细狗哦","已然被老哥彻底驯化","是一秒钟都等不了","会打出什么操作来呢","七星大佬不挑车","主打一个看准都不顺眼","感觉良好！塔台塔台，我已起飞","收徒不收坐骑","把大灯和刹车扔家了","和本田思域一同起飞"];
-// 导航式状态提示
-const navMsgs = [
-  {t:"准备出发", c:"idle"},
-  {t:"前方 500m 右转进入匝道", c:""},
-  {t:"沿当前道路继续行驶", c:""},
-  {t:"请保持直行", c:""},
-  {t:"前方路段拥堵，预计延误 2 分钟", c:"danger"},
-  {t:"即将到达目的地", c:""},
-  {t:"前方进入隧道，信号可能减弱", c:"danger"},
-  {t:"靠左行驶", c:""},
-  {t:"前方红绿灯路口直行", c:""},
-  {t:"即将进入限速路段 80km/h", c:""},
-];
-let mi=0;
+let ci=0;
 setInterval(()=>{
   const el=document.getElementById('sub-t');
-  if(!gRun){el.textContent="准备出发";el.className="idle";return}
-  mi=(mi+1)%navMsgs.length;
-  const m=navMsgs[mi];
-  el.textContent=m.t;
-  el.className=m.c;
-},6000);
+  if(!gRun){el.textContent=caps[ci%caps.length];el.className="idle";ci++;return}
+  ci=(ci+1)%caps.length;
+  el.textContent=caps[ci];
+  el.className=gRun?"chase":"idle";
+},4000);
 
+// ===== 星星 =====
 let cStars=0;
 function setS(n){cStars=n;for(let i=1;i<=7;i++)document.getElementById('s'+i).className=i<=n?'star on':'star'}
 
+// ===== 地图瓦片 =====
 let cLat=34.0522,cLng=-118.2437,z=15;
 let tC={},tF={},st={ok:0,fl:0,ld:0},lS=new Set(),cv,cx,vW,vH;
 
@@ -465,38 +479,39 @@ function lT(x,y,z,lt,pj){
 }
 function uSt(){document.getElementById('dbg-stats').textContent=`瓦片: OK=${st.ok} Fail=${st.fl} Load=${st.ld}`}
 
-// 真实道路名（洛杉矶高速系统）
+// ===== 真实道路名（洛杉矶高速系统） =====
 const rds=["I-210 E PASADENA FWY","US-101 S HOLLYWOOD FWY","I-110 HARBOR FWY","CA-1 PACIFIC COAST HWY","I-405 SAN DIEGO FWY","US-66 HISTORIC ROUTE","SANTA MONICA BLVD","SUNSET BOULEVARD","WILSHIRE BLVD","I-10 SANTA MONICA FWY","I-5 GOLDEN STATE FWY","SR-2 GLENDALE FWY"];
 let ri=0;
 setInterval(()=>{
   if(gRun){
-    // 导航中：显示当前道路 + 剩余距离
-    const curRoad = rds[Math.floor((Date.now()/15000)%rds.length)];
-    const kmRemain = (hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
-    document.getElementById('rd-n').textContent = curRoad;
-    document.getElementById('rd-s').innerHTML = `剩余 <b>${kmRemain}km</b>`;
+    const curRoad=rds[Math.floor((Date.now()/15000)%rds.length)];
+    const kmRemain=(hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
+    document.getElementById('rd-n').textContent=curRoad;
+    document.getElementById('rd-s').innerHTML=`威胁圈 <b>${kmRemain}km</b>`;
   } else if(dSet){
-    document.getElementById('rd-n').textContent = rds[ri];
-    document.getElementById('rd-s').textContent = '准备出发';
+    document.getElementById('rd-n').textContent=rds[ri];
+    document.getElementById('rd-s').textContent='准备出发';
   } else {
     ri=(ri+1)%rds.length;
-    document.getElementById('rd-n').textContent = rds[ri];
-    document.getElementById('rd-s').textContent = '点击地图选择目的地';
+    document.getElementById('rd-n').textContent=rds[ri];
+    document.getElementById('rd-s').textContent='点击地图选择逃跑目的地';
   }
-}, 3000);
+},3000);
 
+// ===== 游戏状态 =====
 let gSpd=0,gRun=false,dLat=0,dLng=0,dSet=false,cRad=0,lHdg=0,gST=0;
 let sigL=false,sigLT=0,oZoom=z,lkL=0,lkN=0,lSig=0;
 const SIG_T=60000;
+let startDist=0,sLat=null,sLng=null;
 
 // 速度更新
 setInterval(()=>{
-  const ring = document.getElementById('speed-ring');
+  const ring=document.getElementById('speed-ring');
   if(gRun){
     gSpd=100+Math.random()*120;
     if(Math.random()<.12)gSpd=40+Math.random()*50;
     ring.classList.add('navi');
-    if(gSpd>150)ring.classList.add('danger'); else ring.classList.remove('danger');
+    if(gSpd>150)ring.classList.add('danger');else ring.classList.remove('danger');
   } else {
     gSpd=Math.max(0,gSpd-8);
     ring.classList.remove('navi','danger');
@@ -507,8 +522,7 @@ setInterval(()=>{
 // 星星更新
 setInterval(()=>{if(gRun){const e=(Date.now()-gST)/1000;setS(Math.min(7,Math.floor(e/15)+1))}},1000);
 
-let sLat=null,sLng=null;
-
+// ===== UI 交互 =====
 function openSP(){
   document.getElementById('sp').classList.add('show');
   setTimeout(()=>document.getElementById('sp-inp').focus(),100);
@@ -529,12 +543,10 @@ function pickPt(a,b){
   sLat=a;sLng=b;
   const d=hav(cLat,cLng,a,b);
   const km=(d/1000).toFixed(1);
-  const eta=Math.round(d/1000/80*60);
-  const streetName = rds[Math.floor(Math.random()*rds.length)];
-  const etaText=eta>60?Math.floor(eta/60)+'小时'+(eta%60)+'分':eta+'分钟';
+  const streetName=rds[Math.floor(Math.random()*rds.length)];
   document.getElementById('dest-name').textContent=streetName;
-  document.getElementById('dest-meta').innerHTML=`<b>${km}km</b> · 预计 ${etaText}`;
-  document.getElementById('dest-btn').textContent='开始导航';
+  document.getElementById('dest-meta').innerHTML=`直线 <b>${km}km</b> · 威胁圈初始半径 ${km*1.1}km`;
+  document.getElementById('dest-btn').textContent='开始逃跑';
   document.getElementById('dest-btn').classList.add('go');
   document.getElementById('dest-btn').classList.remove('stop');
   document.getElementById('dest-btn').onclick=startChase;
@@ -546,33 +558,27 @@ function startChase(){
   dLat=sLat;dLng=sLng;dSet=true;
   cLat=dLat+(Math.random()-.5)*.1;cLng=dLng+(Math.random()-.5)*.1;
   const d=hav(cLat,cLng,dLat,dLng);
-  cRad=d*1.1;
-  startDist=d;  // 记录初始距离用于进度计算
+  cRad=d*1.1;startDist=d;
   gRun=true;gST=Date.now();
   setS(1);startM();
-  const streetName = rds[Math.floor(Math.random()*rds.length)];
-  document.getElementById('dest-name').textContent=streetName;
-  document.getElementById('dest-btn').textContent='结束导航';
+  document.getElementById('dest-name').textContent=rds[Math.floor(Math.random()*rds.length)];
+  document.getElementById('dest-btn').textContent='放弃逃跑';
   document.getElementById('dest-btn').classList.add('stop');
   document.getElementById('dest-btn').classList.remove('go');
   document.getElementById('dest-btn').onclick=stopChase;
-  document.getElementById('progress-wrap').classList.add('show');
-  showOv('开始导航','#3ccf7a','正在为您规划路线');
+  showOv('开始逃跑','#ff5757','威胁圈已开始缩小');
   tC={};st={ok:0,fl:0,ld:0};render();
 }
-let startDist=0;
 
 function stopChase(){
   gRun=false;stopM();
   dSet=false;sLat=null;sLng=null;
   setS(0);
   document.getElementById('dest-name').textContent='未选择';
-  document.getElementById('dest-meta').textContent='点击地图或按钮选择逃跑路线';
+  document.getElementById('dest-meta').textContent='点击地图选择逃跑目的地';
   document.getElementById('dest-btn').textContent='选择目的地';
   document.getElementById('dest-btn').classList.remove('go','stop');
   document.getElementById('dest-btn').onclick=openSP;
-  document.getElementById('progress-wrap').classList.remove('show');
-  document.getElementById('progress-bar').style.width='0%';
 }
 
 function recenter(){
@@ -583,11 +589,12 @@ function zoomIn(){if(z<18){z++;tC={};render();document.getElementById('zr').valu
 function zoomOut(){if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
 function toggleLayer(){
   const lt=document.getElementById('lt');
-  lt.value = lt.value==='img'?'vec':'img';
+  lt.value=lt.value==='img'?'vec':'img';
   tC={};render();
   document.getElementById('btn-layer').classList.toggle('active',lt.value==='img');
 }
 
+// ===== Canvas 交互 =====
 function initC(){
   cv=document.getElementById('map');cx=cv.getContext('2d');
   vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;
@@ -642,6 +649,7 @@ function initC(){
 
 function hav(a1,o1,a2,o2){const R=6371000;const d1=(a2-a1)*Math.PI/180;const d2=(o2-o1)*Math.PI/180;const a=Math.sin(d1/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(d2/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
+// ===== 渲染 =====
 function render(){
   cx.fillStyle='#0a0e14';cx.fillRect(0,0,vW,vH);
   const pj=document.getElementById('pj').value;const lt=document.getElementById('lt').value;const at=aT(lt);
@@ -660,20 +668,25 @@ function render(){
     }
   }
 
-  // 目的地红圈
+  // 威胁圈（缩小中的红圈）
   if(dSet&&gRun){
     const dx=l2x(dLng,z)-px0+vW/2;const dy=a2y(dLat,z)-py0+vH/2+offY;
     const mpp=156543.03392*Math.cos(cLat*Math.PI/180)/(1<<z);
     const r=cRad/mpp;
+    // 圈外区域变暗
     cx.save();cx.beginPath();cx.rect(0,0,vW,vH);cx.arc(dx,dy,r,0,Math.PI*2,true);
     cx.fillStyle='rgba(255,87,87,0.12)';cx.fill();cx.restore();
+    // 圈边
     cx.beginPath();cx.arc(dx,dy,r,0,Math.PI*2);
     cx.strokeStyle='rgba(255,87,87,0.6)';cx.lineWidth=2;cx.setLineDash([12,6]);cx.stroke();cx.setLineDash([]);
+    // 目的地标记
     cx.beginPath();cx.arc(dx,dy,6,0,Math.PI*2);cx.fillStyle='#ff5757';cx.fill();
     cx.beginPath();cx.arc(dx,dy,10,0,Math.PI*2);cx.strokeStyle='rgba(255,87,87,0.4)';cx.lineWidth=1.5;cx.stroke();
+    // 缩圈
     const e=(Date.now()-gST)/1000;
     cRad*=(1-e*.0008);
-    if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});showOv('已到达','#ff5757','导航结束');stopChase();}
+    // 圈追上 = 被捕
+    if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});showOv('被捕','#ff5757','威胁圈已追上');stopChase();}
   }
 
   // 航拍准星
@@ -692,20 +705,22 @@ function render(){
     cx.beginPath();cx.moveTo(0,-oR-8);cx.lineTo(-5,-oR-1);cx.lineTo(5,-oR-1);cx.closePath();
     cx.fillStyle=gc+'0.7)';cx.fill();cx.restore();
   }
-  // 准星旁的导航信息：当前道路 + 限速
+  // 准星旁信息
   cx.font='11px "SF Mono",monospace';cx.fillStyle='rgba(255,255,255,0.6)';cx.textAlign='left';
-  const curRoad = rds[Math.floor((Date.now()/15000)%rds.length)];
-  cx.fillText(curRoad, oR+10, -4);
-  cx.fillText(`限速 120`, oR+10, 12);
+  const curRoad=rds[Math.floor((Date.now()/15000)%rds.length)];
+  cx.fillText(curRoad,oR+10,-4);
+  if(gRun){
+    const kmRemain=(hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
+    cx.fillText(`目标 ${kmRemain}km`,oR+10,12);
+  }
   cx.restore();
 
-  // 导航中：从准星到目的地的引导线（必须在 save/restore 外，用绝对坐标）
+  // 引导线（准星→目的地）
   if(dSet&&gRun){
     const gdx=l2x(dLng,z)-px0+vW/2;const gdy=a2y(dLat,z)-py0+vH/2+offY;
     cx.save();
-    cx.beginPath();cx.moveTo(mx, my);cx.lineTo(gdx, gdy);
-    cx.strokeStyle='rgba(60,207,122,0.75)';cx.lineWidth=3;cx.stroke();
-    cx.strokeStyle='rgba(60,207,122,0.25)';cx.lineWidth=9;cx.stroke();
+    cx.beginPath();cx.moveTo(mx,my);cx.lineTo(gdx,gdy);
+    cx.strokeStyle='rgba(255,87,87,0.5)';cx.lineWidth=2;cx.setLineDash([8,4]);cx.stroke();cx.setLineDash([]);
     cx.restore();
   }
 
@@ -739,23 +754,19 @@ function testTile(){
 
 document.getElementById('zr').addEventListener('input',e=>{document.getElementById('zl').textContent=e.target.value});
 
+// ===== 游戏循环 =====
 function gameLoop(){
   if(gRun){
     const dx=dLng-cLng,dy=dLat-cLat;
     const sf=gSpd*.0000002;
     cLng+=dx*sf;cLat+=dy*sf;
 
-    // 更新剩余距离与ETA
-    const dRemain = hav(cLat,cLng,dLat,dLng);
-    const kmRemain = (dRemain/1000).toFixed(1);
-    const etaMin = gSpd > 5 ? Math.max(1, Math.round(dRemain/1000/gSpd*60)) : '—';
-    document.getElementById('dest-meta').innerHTML = `<b>${kmRemain}km</b> · 预计 ${etaMin}分钟`;
-    // 进度条
-    const progress = startDist>0 ? Math.min(100, (1 - dRemain/startDist)*100) : 0;
-    const bar = document.getElementById('progress-bar');
-    bar.style.width = progress.toFixed(1) + '%';
-    if (dRemain < 500) bar.classList.add('danger'); else bar.classList.remove('danger');
+    // 更新底部面板
+    const dRemain=hav(cLat,cLng,dLat,dLng);
+    const kmRemain=(dRemain/1000).toFixed(1);
+    document.getElementById('dest-meta').innerHTML=`威胁圈 <b>${kmRemain}km</b> · 半径 ${(cRad/1000).toFixed(1)}km`;
 
+    // 信号检测
     const d=hav(cLat,cLng,lkL,lkN);
     if(lSig===0){lkL=cLat;lkN=cLng;lSig=Date.now()}
     const ok=gSpd>20&&d<2000;
@@ -768,6 +779,7 @@ function gameLoop(){
       if(tz!==z){z=tz;tC={}}
       if(e>=SIG_T){gRun=false;sigL=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});document.getElementById('sig').classList.remove('show');showOv('★ 消星成功 ★','#3ccf7a','目标丢失 60 秒');setS(0);stopChase();}
     }
+    // 到达目标
     const d2=hav(cLat,cLng,dLat,dLng);
     if(d2<100&&!sigL){gRun=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});showOv('★ 消星成功 ★','#3ccf7a','到达目标 100m 范围');setS(0);stopChase();}
     render();
