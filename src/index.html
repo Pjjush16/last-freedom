@@ -5,115 +5,395 @@
 <title>争取最后的自由</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0c1017;--panel:rgba(14,18,28,0.92);--border:rgba(80,160,255,0.12);--accent:#3b82f6;--accent-g:rgba(59,130,246,0.4);--txt:#e2e8f0;--dim:rgba(148,163,184,0.7);--muted:rgba(100,116,139,0.5);--red:#ef4444;--grn:#22c55e;--gold:#fbbf24;--r:14px;--blur:16px;--f:-apple-system,'SF Pro Display','Inter','PingFang SC','Microsoft YaHei',sans-serif;--m:'SF Mono','JetBrains Mono',monospace}
-html,body{width:100%;height:100%;font-family:var(--f);background:var(--bg);color:var(--txt);overflow:hidden;user-select:none}
+:root{
+  --bg:#0a0e14;
+  --panel:rgba(20,26,38,0.92);
+  --panel-hi:rgba(30,38,55,0.95);
+  --border:rgba(255,255,255,0.08);
+  --accent:#4f9cff;
+  --accent-g:rgba(79,156,255,0.4);
+  --navi:#3ccf7a;
+  --navi-g:rgba(60,207,122,0.4);
+  --danger:#ff5757;
+  --warn:#ffb84d;
+  --txt:#ffffff;
+  --dim:rgba(255,255,255,0.6);
+  --muted:rgba(255,255,255,0.35);
+  --r:16px;
+  --blur:20px;
+  --f:-apple-system,'SF Pro Display','PingFang SC','Microsoft YaHei',sans-serif;
+  --m:'SF Mono','DIN Alternate','Inter',monospace;
+}
+html,body{width:100%;height:100%;font-family:var(--f);background:var(--bg);color:var(--txt);overflow:hidden;user-select:none;-webkit-tap-highlight-color:transparent}
 canvas#map{display:block;width:100%;height:100%;cursor:grab}
 canvas#map:active{cursor:grabbing}
-@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes scaleIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-@keyframes popIn{0%{transform:scale(0.3);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
-@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-@keyframes sigBlink{0%,100%{opacity:1}50%{opacity:0.2}}
-#top-bar{position:fixed;top:16px;left:16px;right:16px;display:flex;align-items:center;gap:12px;z-index:20;animation:fadeDown .5s ease-out;pointer-events:none}
+
+/* ===== Animations ===== */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes popIn{0%{transform:scale(0.8);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+/* ===== Top Status Bar (高德式) ===== */
+#top-bar{
+  position:fixed;top:12px;left:12px;right:12px;
+  display:flex;align-items:center;gap:12px;
+  z-index:20;
+  animation:slideDown .4s ease-out;
+  pointer-events:none;
+}
 #top-bar>*{pointer-events:auto}
-#speed-mod{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:50px;padding:6px 18px 6px 6px;backdrop-filter:blur(var(--blur));min-width:110px}
-#spd-c{width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(59,130,246,0.18) 0%,transparent 70%);border:2px solid rgba(80,160,255,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .3s}
-#spd-c.act{border-color:var(--grn)}
-#spd-c.dng{border-color:var(--red);box-shadow:0 0 12px rgba(239,68,68,0.4)}
-#spd-n{font-size:20px;font-weight:800;line-height:1;font-family:var(--m);font-variant-numeric:tabular-nums}
-#spd-u{font-size:8px;font-weight:600;text-transform:uppercase;color:var(--dim);letter-spacing:1.5px;margin-top:1px}
-#rd-n{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
-#rd-s{font-size:10px;color:var(--dim)}
-#status{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:50px;padding:8px 14px;backdrop-filter:blur(var(--blur));margin-left:auto}
-.star{font-size:14px;color:rgba(255,255,255,0.1);transition:all .3s}
-.star.on{color:var(--gold);text-shadow:0 0 8px rgba(251,191,36,0.6)}
-#live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 2s infinite;margin-left:4px}
-#info{position:fixed;top:80px;left:16px;z-index:20;background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;backdrop-filter:blur(var(--blur));animation:fadeUp .6s ease-out .2s both;max-width:220px}
-#info .t{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:4px}
-#info .s{font-size:10px;color:var(--dim);line-height:1.5}
-#info .b{display:inline-block;font-size:9px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px;margin-top:4px}
-#safe{position:fixed;top:80px;right:16px;z-index:20;background:rgba(20,26,40,0.88);border:1px solid var(--border);padding:5px 14px;border-radius:20px;font-size:10px;color:var(--muted);backdrop-filter:blur(var(--blur));animation:fadeDown .5s ease-out .3s both}
-#sub{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;text-align:center;pointer-events:none;animation:fadeUp .6s ease-out .4s both}
-#sub-t{font-size:28px;font-weight:800;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.7);letter-spacing:4px}
-.stk{position:fixed;z-index:15;pointer-events:none;filter:drop-shadow(0 6px 20px rgba(0,0,0,0.5));transition:opacity .5s}
-#stk-l{bottom:55px;left:16px;width:130px;height:110px}
-#stk-r{bottom:50px;right:16px;width:110px;height:140px}
-.stk img{width:100%;height:100%;object-fit:contain}
-#ov{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;text-align:center}
-#ov.show{display:block}
-#ov h1{font-size:56px;font-weight:900;text-shadow:0 0 40px currentColor,0 0 80px currentColor;animation:popIn .6s cubic-bezier(0.34,1.56,0.64,1)}
-#ov p{font-size:16px;color:var(--dim);margin-top:8px;font-weight:500}
-#sig{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:40;pointer-events:none;background:rgba(0,0,0,0.15)}
-#sig.show{display:block}
-#sig-in{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
-#sig-lbl{font-size:18px;font-weight:700;color:var(--red);animation:sigBlink .6s infinite;text-shadow:0 0 12px rgba(239,68,68,0.6)}
-#sig-tmr{font-size:56px;font-weight:800;color:var(--red);font-family:var(--m);margin-top:4px}
-#sp{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;width:420px;max-height:70vh;background:var(--panel);border:1px solid rgba(80,160,255,0.3);border-radius:20px;backdrop-filter:blur(24px);box-shadow:0 12px 48px rgba(0,0,0,0.5);overflow:hidden;animation:scaleIn .3s ease-out;flex-direction:column}
-#sp.show{display:flex}
-#sp-hd{padding:20px 24px 14px;border-bottom:1px solid var(--border)}
-#sp-hd h2{font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
-#sp-inp{width:100%;padding:12px 16px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;color:var(--txt);font-size:14px;font-family:var(--f);outline:none;transition:all .2s}
-#sp-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+
+/* 主信息卡：速度 + 道路 + 距离 */
+#nav-card{
+  display:flex;align-items:center;gap:16px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:12px 18px;
+  backdrop-filter:blur(var(--blur));
+  -webkit-backdrop-filter:blur(var(--blur));
+  min-width:280px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+#speed-ring{
+  width:68px;height:68px;flex-shrink:0;
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,rgba(79,156,255,0.15) 0%,transparent 70%);
+  border:2.5px solid rgba(79,156,255,0.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+  transition:border-color .3s, box-shadow .3s;
+}
+#speed-ring.navi{border-color:var(--navi);background:radial-gradient(circle,rgba(60,207,122,0.18) 0%,transparent 70%);box-shadow:0 0 18px var(--navi-g)}
+#speed-ring.danger{border-color:var(--danger);box-shadow:0 0 18px rgba(255,87,87,0.5);animation:pulse 1.5s infinite}
+#spd-n{font-size:28px;font-weight:800;line-height:1;font-family:var(--m);font-variant-numeric:tabular-nums;letter-spacing:-1px}
+#spd-u{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--dim);letter-spacing:2px;margin-top:2px}
+#nav-info{flex:1;min-width:0}
+#rd-n{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+#rd-s{font-size:11px;color:var(--dim);font-family:var(--m);font-variant-numeric:tabular-nums}
+#rd-s b{color:var(--accent);font-weight:600}
+
+/* 状态指示（星星 + 信号） */
+#status{
+  display:flex;align-items:center;gap:8px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:12px 16px;
+  backdrop-filter:blur(var(--blur));
+  -webkit-backdrop-filter:blur(var(--blur));
+  margin-left:auto;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+.star{font-size:16px;color:rgba(255,255,255,0.12);transition:all .3s}
+.star.on{color:var(--warn);text-shadow:0 0 8px rgba(255,184,77,0.7)}
+#live-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--danger);
+  animation:pulse 1.8s infinite;
+  margin-left:4px;
+  box-shadow:0 0 8px var(--danger);
+}
+
+/* ===== 中央航拍准星 ===== */
+#reticle{
+  position:fixed;top:65%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:15;pointer-events:none;
+  animation:fadeIn .6s ease-out .3s both;
+}
+
+/* ===== 底部目的地面板（高德式） ===== */
+#dest-card{
+  position:fixed;bottom:16px;left:16px;right:16px;
+  z-index:20;
+  background:var(--panel-hi);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:16px 20px;
+  backdrop-filter:blur(var(--blur));
+  -webkit-backdrop-filter:blur(var(--blur));
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  animation:slideUp .4s ease-out .2s both;
+  display:flex;align-items:center;gap:16px;
+}
+#dest-icon{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  box-shadow:0 4px 16px var(--accent-g);
+}
+#dest-body{flex:1;min-width:0}
+#dest-label{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);letter-spacing:1.5px;margin-bottom:4px}
+#dest-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dest-meta{font-size:11px;color:var(--dim);margin-top:2px;font-family:var(--m);font-variant-numeric:tabular-nums}
+#dest-meta b{color:var(--accent);font-weight:600}
+#dest-btn{
+  padding:12px 22px;
+  background:linear-gradient(135deg,var(--accent),#6366f1);
+  border:none;border-radius:12px;
+  color:#fff;font-size:14px;font-weight:700;font-family:var(--f);
+  cursor:pointer;white-space:nowrap;
+  box-shadow:0 4px 16px var(--accent-g);
+  transition:all .2s;
+  position:relative;overflow:hidden;
+}
+#dest-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);background-size:200% 100%;animation:shimmer 3s infinite}
+#dest-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--accent-g)}
+#dest-btn.go{background:linear-gradient(135deg,var(--navi),#16a34a);box-shadow:0 4px 16px var(--navi-g)}
+#dest-btn.stop{background:linear-gradient(135deg,var(--danger),#dc2626);box-shadow:0 4px 16px rgba(255,87,87,0.4)}
+
+/* ===== 贴纸（已移除） ===== */
+.stk{display:none}
+
+/* ===== 状态提示条（导航式，替代大字幕） ===== */
+#sub{
+  position:fixed;top:100px;left:50%;transform:translateX(-50%);
+  z-index:15;text-align:center;pointer-events:none;
+  animation:fadeIn .4s ease-out;
+}
+#sub-t{
+  font-size:13px;font-weight:600;color:#fff;
+  background:rgba(20,26,38,0.85);
+  padding:10px 20px;border-radius:24px;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  letter-spacing:0.5px;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.3);
+}
+#sub-t::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--navi);box-shadow:0 0 8px var(--navi);
+  animation:pulse 1.5s infinite;
+}
+#sub-t.idle::before{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+#sub-t.danger::before{background:var(--danger);box-shadow:0 0 8px var(--danger)}
+
+/* ===== 目的地选择弹窗（高德式） ===== */
+#sp{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:60;
+  background:var(--panel-hi);
+  border-top:1px solid var(--border);
+  border-radius:24px 24px 0 0;
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  box-shadow:0 -8px 40px rgba(0,0,0,0.5);
+  max-height:60vh;
+  animation:slideUp .3s ease-out;
+}
+#sp.show{display:block}
+#sp-hd{padding:22px 24px 16px;border-bottom:1px solid var(--border)}
+#sp-hd h2{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+#sp-inp{
+  width:100%;padding:14px 18px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);
+  border-radius:14px;
+  color:var(--txt);font-size:15px;font-family:var(--f);outline:none;
+  transition:all .2s;
+}
+#sp-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g)}
 #sp-inp::placeholder{color:var(--muted)}
-#sp-hint{padding:16px 24px;text-align:center;color:var(--dim);font-size:13px;line-height:1.6;border-bottom:1px solid var(--border)}
+#sp-hint{
+  padding:18px 24px;
+  text-align:center;color:var(--dim);font-size:13px;line-height:1.7;
+}
 #sp-hint b{color:var(--accent);font-weight:600}
-#cbar{display:none;padding:14px 24px;border-top:1px solid var(--border);background:rgba(10,14,22,0.5)}
-#cbar.show{display:block}
-#cinfo{font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-#cinfo .pin{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--red),#f97316);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
-#btn-go{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#6366f1);border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;font-family:var(--f);cursor:pointer;transition:all .2s;box-shadow:0 4px 20px var(--accent-g);position:relative;overflow:hidden}
-#btn-go::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);background-size:200% 100%;animation:shimmer 3s infinite}
-#btn-go:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--accent-g)}
-#hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:20;background:var(--panel);border:1px solid var(--border);border-radius:50px;padding:10px 24px;font-size:13px;color:var(--dim);backdrop-filter:blur(var(--blur));animation:fadeUp .5s ease-out 1s both;white-space:nowrap;cursor:pointer;transition:all .2s}
-#hint:hover{border-color:var(--accent);color:var(--txt)}
-#hint.hide{opacity:0;pointer-events:none}
-#dbg-btn{position:fixed;bottom:16px;right:16px;z-index:25;width:36px;height:36px;border-radius:50%;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--muted);backdrop-filter:blur(var(--blur));transition:all .2s}
-#dbg-btn:hover{border-color:rgba(80,160,255,0.3);color:var(--dim)}
-#dbg{display:none;position:fixed;bottom:60px;right:16px;z-index:25;background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:16px;width:280px;backdrop-filter:blur(var(--blur));animation:scaleIn .2s ease-out}
+#sp-close{
+  position:absolute;top:16px;right:20px;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,0.06);
+  border:none;color:var(--dim);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+#sp-close:hover{background:rgba(255,255,255,0.12);color:var(--txt)}
+
+/* ===== 结果覆盖层 ===== */
+#ov{
+  display:none;position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:50;text-align:center;
+  background:var(--panel-hi);
+  padding:32px 48px;border-radius:24px;
+  border:1px solid var(--border);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  box-shadow:0 12px 60px rgba(0,0,0,0.6);
+  animation:popIn .5s cubic-bezier(0.34,1.56,0.64,1);
+}
+#ov.show{display:block}
+#ov h1{font-size:48px;font-weight:900;letter-spacing:2px}
+#ov p{font-size:14px;color:var(--dim);margin-top:10px;font-weight:500}
+
+/* ===== 信号丢失 ===== */
+#sig{
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  z-index:40;pointer-events:none;
+  background:rgba(0,0,0,0.2);
+}
+#sig.show{display:block}
+#sig-in{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);text-align:center;
+  background:var(--panel-hi);padding:28px 40px;border-radius:20px;
+  border:1px solid rgba(255,87,87,0.3);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+#sig-lbl{font-size:16px;font-weight:700;color:var(--danger);animation:pulse 1s infinite}
+#sig-tmr{font-size:52px;font-weight:800;color:var(--danger);font-family:var(--m);margin-top:6px}
+
+/* ===== 右侧悬浮控制组（高德式） ===== */
+#controls{
+  position:fixed;right:14px;top:50%;transform:translateY(-50%);
+  z-index:25;display:flex;flex-direction:column;gap:10px;
+  animation:fadeIn .5s ease-out .4s both;
+}
+.ctrl-btn{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--panel);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;color:var(--dim);
+  backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  transition:all .2s;
+}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--txt)}
+.ctrl-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ===== 调试面板（默认隐藏） ===== */
+#dbg{
+  display:none;
+  position:fixed;top:80px;right:14px;
+  z-index:30;
+  background:var(--panel-hi);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:16px;width:260px;
+  backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  animation:popIn .2s ease-out;
+}
 #dbg.show{display:block}
-#dbg label{display:block;margin:6px 0 2px;color:var(--dim);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-#dbg input,#dbg select{width:100%;padding:8px 10px;background:rgba(255,255,255,0.04);color:var(--txt);border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:var(--f);outline:none}
+#dbg label{display:block;margin:8px 0 3px;color:var(--dim);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+#dbg input,#dbg select{width:100%;padding:8px 12px;background:rgba(255,255,255,0.04);color:var(--txt);border:1px solid var(--border);border-radius:10px;font-size:12px;font-family:var(--f);outline:none}
 #dbg input:focus,#dbg select:focus{border-color:var(--accent)}
-#dbg button{width:100%;padding:8px;margin-top:8px;background:rgba(59,130,246,0.1);color:var(--accent);border:1px solid rgba(59,130,246,0.2);border-radius:8px;cursor:pointer;font-size:11px;font-family:var(--f)}
-#dbg button:hover{background:rgba(59,130,246,0.2)}
-#dbg-stats{font-family:var(--m);color:var(--muted);font-size:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+#dbg button{width:100%;padding:9px;margin-top:8px;background:rgba(79,156,255,0.1);color:var(--accent);border:1px solid rgba(79,156,255,0.2);border-radius:10px;cursor:pointer;font-size:11px;font-family:var(--f)}
+#dbg button:hover{background:rgba(79,156,255,0.2)}
+#dbg-stats{font-family:var(--m);color:var(--muted);font-size:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* ===== 隐藏旧元素 ===== */
+#info,#safe,#hint,#status{display:none}
 </style>
 </head>
 <body>
 <canvas id="map"></canvas>
+
+<!-- 顶部：高德式导航信息卡 -->
 <div id="top-bar">
-<div id="speed-mod"><div id="spd-c"><div id="spd-n">0</div><div id="spd-u">mph</div></div><div><div id="rd-n">SEARCHING...</div><div id="rd-s">点击地图选择目的地</div></div></div>
-<div id="status"><span class="star" id="s1">★</span><span class="star" id="s2">★</span><span class="star" id="s3">★</span><span class="star" id="s4">★</span><span class="star" id="s5">★</span><span class="star" id="s6">★</span><span class="star" id="s7">★</span><div id="live-dot"></div></div>
+  <div id="nav-card">
+    <div id="speed-ring">
+      <div id="spd-n">0</div>
+      <div id="spd-u">km/h</div>
+    </div>
+    <div id="nav-info">
+      <div id="rd-n">选择目的地</div>
+      <div id="rd-s">双击地图 或 点击底部按钮</div>
+    </div>
+  </div>
+  <div id="status">
+    <span class="star" id="s1">★</span><span class="star" id="s2">★</span>
+    <span class="star" id="s3">★</span><span class="star" id="s4">★</span>
+    <span class="star" id="s5">★</span><span class="star" id="s6">★</span>
+    <span class="star" id="s7">★</span>
+    <div id="live-dot"></div>
+  </div>
 </div>
-<div id="info"><div class="t">🚁 争取最后的自由</div><div class="s">航拍追踪 · 固定机位安全拍摄</div><span class="b">bilibili</span></div>
-<div id="safe">剧情演绎 · 请勿模仿</div>
+
+<!-- 贴纸（小装饰，不喧宾夺主） -->
 <div class="stk" id="stk-l"><img id="stk-li" src="" alt=""></div>
 <div class="stk" id="stk-r"><img id="stk-ri" src="" alt=""></div>
-<div id="sub"><div id="sub-t">警灯一开，悠哉悠哉</div></div>
-<div id="ov"><h1 id="ov-t"></h1><p id="ov-s"></p></div>
-<div id="sig"><div id="sig-in"><div id="sig-lbl">⚠ 信号丢失</div><div id="sig-tmr">60</div><div style="font-size:12px;color:var(--dim);margin-top:8px">正在搜索目标位置...</div></div></div>
-<div id="sp">
-<div id="sp-hd"><h2>🎯 选择逃跑目的地</h2><input type="text" id="sp-inp" placeholder="输入坐标 (如 34.05, -118.25) 或关闭后点击地图" autocomplete="off"></div>
-<div id="sp-hint">关闭此面板后，<b>单击地图任意位置</b>即可设为逃跑目的地<br>也可直接输入经纬度坐标后按回车</div>
-<div id="cbar"><div id="cinfo"><div class="pin">📍</div><span id="ctxt">已选择目的地</span></div><button id="btn-go" onclick="goDest()">🚁 开始逃跑</button></div>
+
+<!-- 大字幕 -->
+<div id="sub"><div id="sub-t" class="idle">准备出发</div></div>
+
+<!-- 进度条 -->
+<div id="progress-wrap"><div id="progress-bar"></div></div>
+
+<!-- 底部目的地面板（高德式） -->
+<div id="dest-card">
+  <div id="dest-icon">📍</div>
+  <div id="dest-body">
+    <div id="dest-label">目的地</div>
+    <div id="dest-name">未选择</div>
+    <div id="dest-meta">点击地图或按钮选择目的地</div>
+  </div>
+  <button id="dest-btn" onclick="openSP()">选择目的地</button>
 </div>
-<div id="hint" onclick="openSP()">🎯 双击地图 或 点击此处 选择逃跑目的地</div>
-<div id="dbg-btn" onclick="document.getElementById('dbg').classList.toggle('show')">⚙</div>
+
+<!-- 右侧控制组 -->
+<div id="controls">
+  <div class="ctrl-btn" id="btn-recenter" onclick="recenter()" title="回到中心">📍</div>
+  <div class="ctrl-btn" id="btn-zoom-in" onclick="zoomIn()" title="放大">＋</div>
+  <div class="ctrl-btn" id="btn-zoom-out" onclick="zoomOut()" title="缩小">－</div>
+  <div class="ctrl-btn" id="btn-layer" onclick="toggleLayer()" title="切换图层">🛰</div>
+  <div class="ctrl-btn" id="btn-dbg" onclick="document.getElementById('dbg').classList.toggle('show')" title="设置">⚙</div>
+</div>
+
+<!-- 调试面板 -->
 <div id="dbg">
-<label>天地图 Key</label><input type="text" id="ki" value="">
-<label>图层</label><select id="lt"><option value="img">卫星影像</option><option value="vec">矢量地图</option></select>
-<label>投影</label><select id="pj"><option value="w" selected>墨卡托</option><option value="c">经纬度</option></select>
-<label>缩放: <span id="zl">15</span></label><input type="range" id="zr" min="3" max="18" value="15">
-<button onclick="apply()">应用并重载</button><button onclick="testTile()">测试单瓦片</button>
-<div id="dbg-stats">瓦片: OK=0 Fail=0 Load=0</div>
+  <label>天地图 Key</label>
+  <input type="text" id="ki" value="">
+  <label>图层</label>
+  <select id="lt"><option value="img">卫星影像</option><option value="vec">矢量地图</option></select>
+  <label>投影</label>
+  <select id="pj"><option value="w" selected>墨卡托</option><option value="c">经纬度</option></select>
+  <label>缩放: <span id="zl">15</span></label>
+  <input type="range" id="zr" min="3" max="18" value="15">
+  <button onclick="apply()">应用并重载</button>
+  <button onclick="testTile()">测试单瓦片</button>
+  <div id="dbg-stats">瓦片: OK=0 Fail=0 Load=0</div>
 </div>
+
+<!-- 目的地选择弹窗 -->
+<div id="sp">
+  <button id="sp-close" onclick="closeSP()">✕</button>
+  <div id="sp-hd">
+    <h2>📍 选择目的地</h2>
+    <input type="text" id="sp-inp" placeholder="输入坐标 (如 34.05, -118.25) 或关闭后点击地图" autocomplete="off">
+  </div>
+  <div id="sp-hint">
+    关闭此面板后，<b>单击地图任意位置</b>即可设为目的地<br>
+    也可直接输入经纬度坐标后按回车
+  </div>
+</div>
+
+<!-- 结果覆盖层 -->
+<div id="ov"><h1 id="ov-t"></h1><p id="ov-s"></p></div>
+
+<!-- 信号丢失 -->
+<div id="sig">
+  <div id="sig-in">
+    <div id="sig-lbl">⚠ 信号丢失</div>
+    <div id="sig-tmr">60</div>
+    <div style="font-size:12px;color:var(--dim);margin-top:8px">正在搜索目标位置...</div>
+  </div>
+</div>
+
 <script>
 // Tile fetch helper - Tauri invoke (embedded) or direct fetch
 const isTauri=!!(window.__TAURI__&&window.__TAURI__.invoke);
 async function fetchTileUrl(url){if(isTauri){const bytes=await window.__TAURI__.invoke("fetch_tile",{url});return new Blob([new Uint8Array(bytes)],{type:"image/png"})}const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.blob()}
+
 const CM=[new Audio('music/cmon.m4a'),new Audio('music/she_makes_me_go.m4a')];
 CM.forEach(m=>{m.loop=true;m.volume=.7});
 let mPlay=false;
@@ -121,73 +401,380 @@ function startM(){if(mPlay)return;CM[0].play().catch(()=>{});mPlay=true;CM.forEa
 function stopM(){CM.forEach(m=>{m.pause();m.currentTime=0});mPlay=false}
 const aM=new Audio('music/arrest_music.m4a');aM.volume=.8;
 const sM=new Audio('music/star_clear_music.m4a');sM.volume=.8;
+
 const SK={b:'sticker/panda_driver_nobg.png',g:'sticker/anime_girl_nobg.png',gv:'sticker/anime_girl_variant_raw.png',p:'sticker/panda_running_raw.png'};
 const SS=[{l:'b',r:'g'},{l:'p',r:'gv'},{l:'b',r:'gv'},{l:'p',r:'g'}];
 let si=0;
 function rotS(){si=(si+1)%SS.length;document.getElementById('stk-li').src=SK[SS[si].l];document.getElementById('stk-ri').src=SK[SS[si].r]}
 (function(){document.getElementById('stk-li').src=SK[SS[0].l];document.getElementById('stk-ri').src=SK[SS[0].r];setInterval(rotS,30000)})();
+
 const caps=["警灯一开，悠哉悠哉","赶快去拿纸，蹲下就开始","全速怕什么怕","给我闹！","奋力踩踩踩","细妹细狗哦","已然被老哥彻底驯化","是一秒钟都等不了","会打出什么操作来呢","七星大佬不挑车","主打一个看准都不顺眼","感觉良好！塔台塔台，我已起飞","收徒不收坐骑","把大灯和刹车扔家了","和本田思域一同起飞"];
-let ci=0;setInterval(()=>{ci=(ci+1)%caps.length;document.getElementById('sub-t').textContent=caps[ci]},8000);
+// 导航式状态提示
+const navMsgs = [
+  {t:"准备出发", c:"idle"},
+  {t:"前方 500m 右转进入匝道", c:""},
+  {t:"沿当前道路继续行驶", c:""},
+  {t:"请保持直行", c:""},
+  {t:"前方路段拥堵，预计延误 2 分钟", c:"danger"},
+  {t:"即将到达目的地", c:""},
+  {t:"前方进入隧道，信号可能减弱", c:"danger"},
+  {t:"靠左行驶", c:""},
+  {t:"前方红绿灯路口直行", c:""},
+  {t:"即将进入限速路段 80km/h", c:""},
+];
+let mi=0;
+setInterval(()=>{
+  const el=document.getElementById('sub-t');
+  if(!gRun){el.textContent="准备出发";el.className="idle";return}
+  mi=(mi+1)%navMsgs.length;
+  const m=navMsgs[mi];
+  el.textContent=m.t;
+  el.className=m.c;
+},6000);
+
 let cStars=0;
 function setS(n){cStars=n;for(let i=1;i<=7;i++)document.getElementById('s'+i).className=i<=n?'star on':'star'}
+
 let cLat=34.0522,cLng=-118.2437,z=15;
 let tC={},tF={},st={ok:0,fl:0,ld:0},lS=new Set(),cv,cx,vW,vH;
+
 function l2x(l,z){return((l+180)/360)*(1<<z)*256}
 function a2y(a,z){return((1-Math.log(Math.tan(a*Math.PI/180)+1/Math.cos(a*Math.PI/180))/Math.PI)/2)*(1<<z)*256}
 function x2l(p,z){return p/((1<<z)*256)*360-180}
 function y2a(p,z){return Math.atan(Math.sinh(Math.PI*(1-2*p/((1<<z)*256))))*180/Math.PI}
 function bU(x,y,z,lt,pj,k){const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=${lt}_${pj}&X=${x}&Y=${y}&L=${z}&tk=${k}`}
 function aT(t){return{img:'cia',vec:'cva'}[t]||'cia'}
-function lT(x,y,z,lt,pj){const k=document.getElementById('ki').value.trim();if(!k)return null;const c=`${lt}/${pj}/${z}/${x}/${y}`;if(tC[c])return tC[c];if(tF[c]>=3)return null;if(lS.has(c))return null;const u=bU(x,y,z,lt,pj,k);lS.add(c);st.ld++;uSt();fetchTileUrl(u).then(b=>{const bu=URL.createObjectURL(b);const i=new Image();i.onload=()=>{tC[c]=i;tF[c]=0;st.ok++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};i.onerror=()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};i.src=bu}).catch(()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render()});return null}
+
+function lT(x,y,z,lt,pj){
+  const k=document.getElementById('ki').value.trim();
+  if(!k)return null;
+  const c=`${lt}/${pj}/${z}/${x}/${y}`;
+  if(tC[c])return tC[c];
+  if(tF[c]>=3)return null;
+  if(lS.has(c))return null;
+  const u=bU(x,y,z,lt,pj,k);
+  lS.add(c);st.ld++;uSt();
+  fetchTileUrl(u).then(b=>{
+    const bu=URL.createObjectURL(b);
+    const i=new Image();
+    i.onload=()=>{tC[c]=i;tF[c]=0;st.ok++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};
+    i.onerror=()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};
+    i.src=bu
+  }).catch(()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render()});
+  return null
+}
 function uSt(){document.getElementById('dbg-stats').textContent=`瓦片: OK=${st.ok} Fail=${st.fl} Load=${st.ld}`}
-const rds=["I-210 E PASADENA FWY","US-101 S HOLLYWOOD FWY","I-110 HARBOR FWY","CA-1 PACIFIC COAST HWY","I-405 SAN DIEGO FWY","US-66 HISTORIC ROUTE","SANTA MONICA BLVD","SUNSET BOULEVARD","WILSHIRE BLVD"];
-let ri=0;setInterval(()=>{ri=(ri+1)%rds.length;document.getElementById('rd-n').textContent=rds[ri]},10000);
+
+// 真实道路名（洛杉矶高速系统）
+const rds=["I-210 E PASADENA FWY","US-101 S HOLLYWOOD FWY","I-110 HARBOR FWY","CA-1 PACIFIC COAST HWY","I-405 SAN DIEGO FWY","US-66 HISTORIC ROUTE","SANTA MONICA BLVD","SUNSET BOULEVARD","WILSHIRE BLVD","I-10 SANTA MONICA FWY","I-5 GOLDEN STATE FWY","SR-2 GLENDALE FWY"];
+let ri=0;
+setInterval(()=>{
+  if(gRun){
+    // 导航中：显示当前道路 + 剩余距离
+    const curRoad = rds[Math.floor((Date.now()/15000)%rds.length)];
+    const kmRemain = (hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
+    document.getElementById('rd-n').textContent = curRoad;
+    document.getElementById('rd-s').innerHTML = `剩余 <b>${kmRemain}km</b>`;
+  } else if(dSet){
+    document.getElementById('rd-n').textContent = rds[ri];
+    document.getElementById('rd-s').textContent = '准备出发';
+  } else {
+    ri=(ri+1)%rds.length;
+    document.getElementById('rd-n').textContent = rds[ri];
+    document.getElementById('rd-s').textContent = '点击地图选择目的地';
+  }
+}, 3000);
+
 let gSpd=0,gRun=false,dLat=0,dLng=0,dSet=false,cRad=0,lHdg=0,gST=0;
 let sigL=false,sigLT=0,oZoom=z,lkL=0,lkN=0,lSig=0;
 const SIG_T=60000;
-setInterval(()=>{if(gRun){gSpd=60+Math.random()*80;if(Math.random()<.1)gSpd=30+Math.random()*30;document.getElementById('spd-c').className=gSpd>100?'dng':'act'}else{gSpd=Math.max(0,gSpd-5);document.getElementById('spd-c').className=''}document.getElementById('spd-n').textContent=Math.round(gSpd)},200);
+
+// 速度更新
+setInterval(()=>{
+  const ring = document.getElementById('speed-ring');
+  if(gRun){
+    gSpd=100+Math.random()*120;
+    if(Math.random()<.12)gSpd=40+Math.random()*50;
+    ring.classList.add('navi');
+    if(gSpd>150)ring.classList.add('danger'); else ring.classList.remove('danger');
+  } else {
+    gSpd=Math.max(0,gSpd-8);
+    ring.classList.remove('navi','danger');
+  }
+  document.getElementById('spd-n').textContent=Math.round(gSpd);
+},200);
+
+// 星星更新
 setInterval(()=>{if(gRun){const e=(Date.now()-gST)/1000;setS(Math.min(7,Math.floor(e/15)+1))}},1000);
+
 let sLat=null,sLng=null;
-function openSP(){document.getElementById('sp').classList.add('show');document.getElementById('hint').classList.add('hide');document.getElementById('sp-inp').focus()}
+
+function openSP(){
+  document.getElementById('sp').classList.add('show');
+  setTimeout(()=>document.getElementById('sp-inp').focus(),100);
+}
 function closeSP(){document.getElementById('sp').classList.remove('show')}
-document.getElementById('sp-inp').addEventListener('keydown',e=>{if(e.key==='Enter'){const v=e.target.value.trim();const m=v.match(/^(-?\d+\.?\d*)\s*[,;]\s*(-?\d+\.?\d*)$/);if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);if(a>=-90&&a<=90&&b>=-180&&b<=180)pickPt(a,b)}else if(v){alert('请输入经纬度坐标，如: 34.05, -118.25')}}if(e.key==='Escape')closeSP()});
-function pickPt(a,b){sLat=a;sLng=b;const d=hav(cLat,cLng,a,b);const km=(d/1000).toFixed(1);const eta=Math.round(d/1000/80*60);document.getElementById('ctxt').innerHTML=`<b>${a.toFixed(4)}, ${b.toFixed(4)}</b> · ${km}km · ≈${eta>60?Math.floor(eta/60)+'h'+(eta%60)+'m':eta+'min'}`;document.getElementById('cbar').classList.add('show');closeSP()}
-function goDest(){if(sLat===null)return;dLat=sLat;dLng=sLng;dSet=true;cLat=dLat+(Math.random()-.5)*.1;cLng=dLng+(Math.random()-.5)*.1;const d=hav(cLat,cLng,dLat,dLng);cRad=d*1.1;gRun=true;gST=Date.now();setS(1);startM();document.getElementById('rd-s').textContent=`目标: ${dLat.toFixed(3)}, ${dLng.toFixed(3)}`;document.getElementById('hint').classList.add('hide');showOv('出发！','#3b82f6','追逐开始');tC={};st={ok:0,fl:0,ld:0};render()}
-function initC(){cv=document.getElementById('map');cx=cv.getContext('2d');vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;let drag=false,lx=0,ly=0,moved=false;
-cv.addEventListener('mousedown',e=>{drag=true;moved=false;lx=e.clientX;ly=e.clientY});
-cv.addEventListener('mousemove',e=>{if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)>2||Math.abs(dy)>2)moved=true;cLng=x2l(l2x(cLng,z)-dx,z);cLat=y2a(a2y(cLat,z)-dy,z);lx=e.clientX;ly=e.clientY;render()});
-cv.addEventListener('mouseup',e=>{drag=false;if(!moved&&!gRun){const r=cv.getBoundingClientRect();const px=l2x(cLng,z)+(e.clientX-r.left-vW/2);const py=a2y(cLat,z)+(e.clientY-r.top-vH/2);pickPt(y2a(py,z),x2l(px,z))}});
-cv.addEventListener('dblclick',()=>{if(!gRun)openSP()});
-cv.addEventListener('mouseleave',()=>drag=false);
-cv.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY<0&&z<18)z++;else if(e.deltaY>0&&z>1)z--;document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;tC={};st={ok:0,fl:0,ld:0};render()});
-let tx=0,ty=0,tm=false;
-cv.addEventListener('touchstart',e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;tm=false});
-cv.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];const dx=t.clientX-tx,dy=t.clientY-ty;if(Math.abs(dx)>3||Math.abs(dy)>3)tm=true;cLng=x2l(l2x(cLng,z)-dx,z);cLat=y2a(a2y(cLat,z)-dy,z);tx=t.clientX;ty=t.clientY;render()},{passive:false});
-cv.addEventListener('touchend',e=>{if(!tm&&!gRun&&e.changedTouches.length){const t=e.changedTouches[0];const px=l2x(cLng,z)+(t.clientX-vW/2);const py=a2y(cLat,z)+(t.clientY-vH/2);pickPt(y2a(py,z),x2l(px,z))}});
-addEventListener('resize',()=>{vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;render()})}
+
+document.getElementById('sp-inp').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const v=e.target.value.trim();
+    const m=v.match(/^(-?\d+\.?\d*)\s*[,;]\s*(-?\d+\.?\d*)$/);
+    if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);if(a>=-90&&a<=90&&b>=-180&&b<=180)pickPt(a,b);else alert('坐标超出范围')}
+    else if(v)alert('请输入经纬度坐标，如: 34.05, -118.25');
+  }
+  if(e.key==='Escape')closeSP();
+});
+
+function pickPt(a,b){
+  sLat=a;sLng=b;
+  const d=hav(cLat,cLng,a,b);
+  const km=(d/1000).toFixed(1);
+  const eta=Math.round(d/1000/80*60);
+  const streetName = rds[Math.floor(Math.random()*rds.length)];
+  const etaText=eta>60?Math.floor(eta/60)+'小时'+(eta%60)+'分':eta+'分钟';
+  document.getElementById('dest-name').textContent=streetName;
+  document.getElementById('dest-meta').innerHTML=`<b>${km}km</b> · 预计 ${etaText}`;
+  document.getElementById('dest-btn').textContent='开始导航';
+  document.getElementById('dest-btn').classList.add('go');
+  document.getElementById('dest-btn').classList.remove('stop');
+  document.getElementById('dest-btn').onclick=startChase;
+  closeSP();
+}
+
+function startChase(){
+  if(sLat===null)return;
+  dLat=sLat;dLng=sLng;dSet=true;
+  cLat=dLat+(Math.random()-.5)*.1;cLng=dLng+(Math.random()-.5)*.1;
+  const d=hav(cLat,cLng,dLat,dLng);
+  cRad=d*1.1;
+  startDist=d;  // 记录初始距离用于进度计算
+  gRun=true;gST=Date.now();
+  setS(1);startM();
+  const streetName = rds[Math.floor(Math.random()*rds.length)];
+  document.getElementById('dest-name').textContent=streetName;
+  document.getElementById('dest-btn').textContent='结束导航';
+  document.getElementById('dest-btn').classList.add('stop');
+  document.getElementById('dest-btn').classList.remove('go');
+  document.getElementById('dest-btn').onclick=stopChase;
+  document.getElementById('progress-wrap').classList.add('show');
+  showOv('开始导航','#3ccf7a','正在为您规划路线');
+  tC={};st={ok:0,fl:0,ld:0};render();
+}
+let startDist=0;
+
+function stopChase(){
+  gRun=false;stopM();
+  dSet=false;sLat=null;sLng=null;
+  setS(0);
+  document.getElementById('dest-name').textContent='未选择';
+  document.getElementById('dest-meta').textContent='点击地图或按钮选择逃跑路线';
+  document.getElementById('dest-btn').textContent='选择目的地';
+  document.getElementById('dest-btn').classList.remove('go','stop');
+  document.getElementById('dest-btn').onclick=openSP;
+  document.getElementById('progress-wrap').classList.remove('show');
+  document.getElementById('progress-bar').style.width='0%';
+}
+
+function recenter(){
+  if(dSet&&gRun){cLat=dLat+(Math.random()-.5)*.05;cLng=dLng+(Math.random()-.5)*.05}
+  tC={};render();
+}
+function zoomIn(){if(z<18){z++;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
+function zoomOut(){if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
+function toggleLayer(){
+  const lt=document.getElementById('lt');
+  lt.value = lt.value==='img'?'vec':'img';
+  tC={};render();
+  document.getElementById('btn-layer').classList.toggle('active',lt.value==='img');
+}
+
+function initC(){
+  cv=document.getElementById('map');cx=cv.getContext('2d');
+  vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;
+  let drag=false,lx=0,ly=0,moved=false;
+  cv.addEventListener('mousedown',e=>{drag=true;moved=false;lx=e.clientX;ly=e.clientY});
+  cv.addEventListener('mousemove',e=>{
+    if(!drag)return;
+    const dx=e.clientX-lx,dy=e.clientY-ly;
+    if(Math.abs(dx)>2||Math.abs(dy)>2)moved=true;
+    cLng=x2l(l2x(cLng,z)-dx,z);cLat=y2a(a2y(cLat,z)-dy,z);
+    lx=e.clientX;ly=e.clientY;render();
+  });
+  cv.addEventListener('mouseup',e=>{
+    drag=false;
+    if(!moved&&!gRun){
+      const r=cv.getBoundingClientRect();
+      const px=l2x(cLng,z)+(e.clientX-r.left-vW/2);
+      const py=a2y(cLat,z)+(e.clientY-r.top-vH/2);
+      pickPt(y2a(py,z),x2l(px,z));
+    }
+  });
+  cv.addEventListener('dblclick',()=>{if(!gRun)openSP()});
+  cv.addEventListener('mouseleave',()=>drag=false);
+  cv.addEventListener('wheel',e=>{
+    e.preventDefault();
+    if(e.deltaY<0&&z<18)z++;
+    else if(e.deltaY>0&&z>1)z--;
+    document.getElementById('zr').value=z;
+    document.getElementById('zl').textContent=z;
+    tC={};st={ok:0,fl:0,ld:0};render();
+  },{passive:false});
+
+  let tx=0,ty=0,tm=false;
+  cv.addEventListener('touchstart',e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;tm=false});
+  cv.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    const t=e.touches[0];const dx=t.clientX-tx,dy=t.clientY-ty;
+    if(Math.abs(dx)>3||Math.abs(dy)>3)tm=true;
+    cLng=x2l(l2x(cLng,z)-dx,z);cLat=y2a(a2y(cLat,z)-dy,z);
+    tx=t.clientX;ty=t.clientY;render();
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{
+    if(!tm&&!gRun&&e.changedTouches.length){
+      const t=e.changedTouches[0];
+      const px=l2x(cLng,z)+(t.clientX-vW/2);
+      const py=a2y(cLat,z)+(t.clientY-vH/2);
+      pickPt(y2a(py,z),x2l(px,z));
+    }
+  });
+  addEventListener('resize',()=>{vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;render()});
+}
+
 function hav(a1,o1,a2,o2){const R=6371000;const d1=(a2-a1)*Math.PI/180;const d2=(o2-o1)*Math.PI/180;const a=Math.sin(d1/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(d2/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
-function render(){cx.fillStyle='#0c1017';cx.fillRect(0,0,vW,vH);const pj=document.getElementById('pj').value;const lt=document.getElementById('lt').value;const at=aT(lt);const px0=l2x(cLng,z);const py0=a2y(cLat,z);const pY=vH*.65;const offY=vH/2-pY;const tX=Math.ceil(vW/256)+2;const tY=Math.ceil(vH/256)+2;const cX=Math.floor(px0/256);const cY=Math.floor(py0/256);const mT=1<<z;
-for(let dy=-Math.floor(tY/2);dy<=Math.floor(tY/2);dy++)for(let dx=-Math.floor(tX/2);dx<=Math.floor(tX/2);dx++){const tx=cX+dx,ty=cY+dy;if(tx<0||ty<0||tx>=mT||ty>=mT)continue;const sx=tx*256-px0+vW/2;const sy=ty*256-py0+vH/2+offY;const i=lT(tx,ty,z,lt,pj);if(i)cx.drawImage(i,sx,sy,256,256);const a=lT(tx,ty,z,at,pj);if(a)cx.drawImage(a,sx,sy,256,256)}
-if(dSet&&gRun){const dx=l2x(dLng,z)-px0+vW/2;const dy=a2y(dLat,z)-py0+vH/2+offY;const mpp=156543.03392*Math.cos(cLat*Math.PI/180)/(1<<z);const r=cRad/mpp;cx.save();cx.beginPath();cx.rect(0,0,vW,vH);cx.arc(dx,dy,r,0,Math.PI*2,true);cx.fillStyle='rgba(239,68,68,0.10)';cx.fill();cx.restore();cx.beginPath();cx.arc(dx,dy,r,0,Math.PI*2);cx.strokeStyle='rgba(239,68,68,0.5)';cx.lineWidth=2;cx.setLineDash([10,5]);cx.stroke();cx.setLineDash([]);cx.beginPath();cx.arc(dx,dy,5,0,Math.PI*2);cx.fillStyle='#ef4444';cx.fill();cx.beginPath();cx.arc(dx,dy,9,0,Math.PI*2);cx.strokeStyle='rgba(239,68,68,0.35)';cx.lineWidth=1.5;cx.stroke();const e=(Date.now()-gST)/1000;cRad*=(1-e*.0008);if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});showOv('被捕！','#ef4444','红圈追上，游戏结束')}}
-const mx=vW/2,my=pY;if(dSet&&gRun)lHdg=Math.atan2(dLng-cLng,dLat-cLat)*180/Math.PI;
-cx.save();cx.translate(mx,my);const br=1+Math.sin(Date.now()/800)*.04;const oR=32*br;const gc=gRun?'rgba(34,197,94,':'rgba(59,130,246,';
-cx.beginPath();cx.arc(0,0,oR,0,Math.PI*2);cx.strokeStyle=gc+'0.45)';cx.lineWidth=1.5;cx.stroke();
-cx.beginPath();cx.arc(0,0,10,0,Math.PI*2);cx.strokeStyle=gc+'0.35)';cx.lineWidth=1;cx.stroke();
-cx.beginPath();cx.moveTo(-28,0);cx.lineTo(-12,0);cx.moveTo(12,0);cx.lineTo(28,0);cx.moveTo(0,-28);cx.lineTo(0,-12);cx.moveTo(0,12);cx.lineTo(0,28);cx.strokeStyle=gc+'0.45)';cx.lineWidth=1;cx.stroke();
-if(gRun&&dSet){cx.save();cx.rotate(lHdg*Math.PI/180);cx.beginPath();cx.moveTo(0,-oR-7);cx.lineTo(-4,-oR-1);cx.lineTo(4,-oR-1);cx.closePath();cx.fillStyle=gc+'0.6)';cx.fill();cx.restore()}
-cx.font='10px "SF Mono",monospace';cx.fillStyle='rgba(148,163,184,0.5)';cx.textAlign='left';cx.fillText(`ALT 300m`,oR+8,-3);cx.fillText(`HDG ${Math.round((lHdg+360)%360)}°`,oR+8,10);cx.restore();
-if(sigL&&gRun){cx.save();cx.globalAlpha=.06+Math.random()*.04;for(let i=0;i<150;i++){cx.fillStyle=Math.random()>.5?'#fff':'#000';cx.fillRect(Math.random()*vW,Math.random()*vH,2+Math.random()*3,1)}cx.restore()}}
-function showOv(t,c,s){const e=document.getElementById('ov');document.getElementById('ov-t').textContent=t;document.getElementById('ov-t').style.color=c;document.getElementById('ov-s').textContent=s||'';e.className='show';setTimeout(()=>e.className='',3000)}
+
+function render(){
+  cx.fillStyle='#0a0e14';cx.fillRect(0,0,vW,vH);
+  const pj=document.getElementById('pj').value;const lt=document.getElementById('lt').value;const at=aT(lt);
+  const px0=l2x(cLng,z);const py0=a2y(cLat,z);
+  const pY=vH*.65;const offY=vH/2-pY;
+  const tX=Math.ceil(vW/256)+2;const tY=Math.ceil(vH/256)+2;
+  const cX=Math.floor(px0/256);const cY=Math.floor(py0/256);
+  const mT=1<<z;
+  for(let dy=-Math.floor(tY/2);dy<=Math.floor(tY/2);dy++){
+    for(let dx=-Math.floor(tX/2);dx<=Math.floor(tX/2);dx++){
+      const tx=cX+dx,ty=cY+dy;
+      if(tx<0||ty<0||tx>=mT||ty>=mT)continue;
+      const sx=tx*256-px0+vW/2;const sy=ty*256-py0+vH/2+offY;
+      const i=lT(tx,ty,z,lt,pj);if(i)cx.drawImage(i,sx,sy,256,256);
+      const a=lT(tx,ty,z,at,pj);if(a)cx.drawImage(a,sx,sy,256,256);
+    }
+  }
+
+  // 目的地红圈
+  if(dSet&&gRun){
+    const dx=l2x(dLng,z)-px0+vW/2;const dy=a2y(dLat,z)-py0+vH/2+offY;
+    const mpp=156543.03392*Math.cos(cLat*Math.PI/180)/(1<<z);
+    const r=cRad/mpp;
+    cx.save();cx.beginPath();cx.rect(0,0,vW,vH);cx.arc(dx,dy,r,0,Math.PI*2,true);
+    cx.fillStyle='rgba(255,87,87,0.12)';cx.fill();cx.restore();
+    cx.beginPath();cx.arc(dx,dy,r,0,Math.PI*2);
+    cx.strokeStyle='rgba(255,87,87,0.6)';cx.lineWidth=2;cx.setLineDash([12,6]);cx.stroke();cx.setLineDash([]);
+    cx.beginPath();cx.arc(dx,dy,6,0,Math.PI*2);cx.fillStyle='#ff5757';cx.fill();
+    cx.beginPath();cx.arc(dx,dy,10,0,Math.PI*2);cx.strokeStyle='rgba(255,87,87,0.4)';cx.lineWidth=1.5;cx.stroke();
+    const e=(Date.now()-gST)/1000;
+    cRad*=(1-e*.0008);
+    if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});showOv('已到达','#ff5757','导航结束');stopChase();}
+  }
+
+  // 航拍准星
+  const mx=vW/2,my=pY;
+  if(dSet&&gRun)lHdg=Math.atan2(dLng-cLng,dLat-cLat)*180/Math.PI;
+  cx.save();cx.translate(mx,my);
+  const br=1+Math.sin(Date.now()/800)*.04;const oR=36*br;
+  const gc=gRun?'rgba(60,207,122,':'rgba(79,156,255,';
+  cx.beginPath();cx.arc(0,0,oR,0,Math.PI*2);cx.strokeStyle=gc+'0.5)';cx.lineWidth=2;cx.stroke();
+  cx.beginPath();cx.arc(0,0,12,0,Math.PI*2);cx.strokeStyle=gc+'0.4)';cx.lineWidth=1;cx.stroke();
+  cx.beginPath();cx.moveTo(-32,0);cx.lineTo(-14,0);cx.moveTo(14,0);cx.lineTo(32,0);
+  cx.moveTo(0,-32);cx.lineTo(0,-14);cx.moveTo(0,14);cx.lineTo(0,32);
+  cx.strokeStyle=gc+'0.5)';cx.lineWidth=1.2;cx.stroke();
+  if(gRun&&dSet){
+    cx.save();cx.rotate(lHdg*Math.PI/180);
+    cx.beginPath();cx.moveTo(0,-oR-8);cx.lineTo(-5,-oR-1);cx.lineTo(5,-oR-1);cx.closePath();
+    cx.fillStyle=gc+'0.7)';cx.fill();cx.restore();
+  }
+  // 准星旁的导航信息：当前道路 + 限速
+  cx.font='11px "SF Mono",monospace';cx.fillStyle='rgba(255,255,255,0.6)';cx.textAlign='left';
+  const curRoad = rds[Math.floor((Date.now()/15000)%rds.length)];
+  cx.fillText(curRoad, oR+10, -4);
+  cx.fillText(`限速 120`, oR+10, 12);
+  cx.restore();
+
+  // 导航中：从准星到目的地的引导线（必须在 save/restore 外，用绝对坐标）
+  if(dSet&&gRun){
+    const gdx=l2x(dLng,z)-px0+vW/2;const gdy=a2y(dLat,z)-py0+vH/2+offY;
+    cx.save();
+    cx.beginPath();cx.moveTo(mx, my);cx.lineTo(gdx, gdy);
+    cx.strokeStyle='rgba(60,207,122,0.75)';cx.lineWidth=3;cx.stroke();
+    cx.strokeStyle='rgba(60,207,122,0.25)';cx.lineWidth=9;cx.stroke();
+    cx.restore();
+  }
+
+  // 信号丢失雪花
+  if(sigL&&gRun){
+    cx.save();cx.globalAlpha=.06+Math.random()*.04;
+    for(let i=0;i<150;i++){cx.fillStyle=Math.random()>.5?'#fff':'#000';cx.fillRect(Math.random()*vW,Math.random()*vH,2+Math.random()*3,1)}
+    cx.restore();
+  }
+}
+
+function showOv(t,c,s){
+  const e=document.getElementById('ov');
+  document.getElementById('ov-t').textContent=t;
+  document.getElementById('ov-t').style.color=c;
+  document.getElementById('ov-t').style.textShadow=`0 0 40px ${c}, 0 0 80px ${c}`;
+  document.getElementById('ov-s').textContent=s||'';
+  e.className='show';
+  setTimeout(()=>e.className='',3000);
+}
+
 function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};render()}
-function testTile(){const k=document.getElementById('ki').value.trim();if(!k){alert('请输入天地图 Key');return}const lt=document.getElementById('lt').value;const pj=document.getElementById('pj').value;const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);const u=bU(tx,ty,z,lt,pj,k);fetchTileUrl(u).then(()=>alert('HTTP 200')).catch(e=>alert('Error: '+e.message))}
+function testTile(){
+  const k=document.getElementById('ki').value.trim();
+  if(!k){alert('请输入天地图 Key');return}
+  const lt=document.getElementById('lt').value;const pj=document.getElementById('pj').value;
+  const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);
+  const u=bU(tx,ty,z,lt,pj,k);
+  fetchTileUrl(u).then(()=>alert('HTTP 200')).catch(e=>alert('Error: '+e.message));
+}
+
 document.getElementById('zr').addEventListener('input',e=>{document.getElementById('zl').textContent=e.target.value});
-function gameLoop(){if(gRun){const dx=dLng-cLng,dy=dLat-cLat;const sf=gSpd*.0000002;cLng+=dx*sf;cLat+=dy*sf;
-const d=hav(cLat,cLng,lkL,lkN);if(lSig===0){lkL=cLat;lkN=cLng;lSig=Date.now()}
-const ok=gSpd>20&&d<2000;if(ok){lkL=cLat;lkN=cLng;lSig=Date.now();if(sigL){sigL=false;z=oZoom;document.getElementById('sig').classList.remove('show');showOv('信号恢复','#22c55e','GPS 信号重新锁定')}}else if(!sigL&&Date.now()-lSig>5000){sigL=true;sigLT=Date.now();oZoom=z;document.getElementById('sig').classList.add('show')}
-if(sigL){const e=Date.now()-sigLT;const r=Math.max(0,Math.ceil((SIG_T-e)/1000));document.getElementById('sig-tmr').textContent=r;const p=Math.min(1,e/(SIG_T*.8));const tz=Math.max(3,oZoom-Math.floor(p*8));if(tz!==z){z=tz;tC={}}
-if(e>=SIG_T){gRun=false;sigL=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});document.getElementById('sig').classList.remove('show');showOv('★ 消星成功 ★','#22c55e','目标丢失 60 秒');setS(0)}}
-const d2=hav(cLat,cLng,dLat,dLng);if(d2<100&&!sigL){gRun=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});showOv('★ 消星成功 ★','#22c55e','到达目标 100m 范围');setS(0)}
-render()}requestAnimationFrame(gameLoop)}
+
+function gameLoop(){
+  if(gRun){
+    const dx=dLng-cLng,dy=dLat-cLat;
+    const sf=gSpd*.0000002;
+    cLng+=dx*sf;cLat+=dy*sf;
+
+    // 更新剩余距离与ETA
+    const dRemain = hav(cLat,cLng,dLat,dLng);
+    const kmRemain = (dRemain/1000).toFixed(1);
+    const etaMin = gSpd > 5 ? Math.max(1, Math.round(dRemain/1000/gSpd*60)) : '—';
+    document.getElementById('dest-meta').innerHTML = `<b>${kmRemain}km</b> · 预计 ${etaMin}分钟`;
+    // 进度条
+    const progress = startDist>0 ? Math.min(100, (1 - dRemain/startDist)*100) : 0;
+    const bar = document.getElementById('progress-bar');
+    bar.style.width = progress.toFixed(1) + '%';
+    if (dRemain < 500) bar.classList.add('danger'); else bar.classList.remove('danger');
+
+    const d=hav(cLat,cLng,lkL,lkN);
+    if(lSig===0){lkL=cLat;lkN=cLng;lSig=Date.now()}
+    const ok=gSpd>20&&d<2000;
+    if(ok){lkL=cLat;lkN=cLng;lSig=Date.now();if(sigL){sigL=false;z=oZoom;document.getElementById('sig').classList.remove('show');showOv('信号恢复','#3ccf7a','GPS 信号重新锁定')}}
+    else if(!sigL&&Date.now()-lSig>5000){sigL=true;sigLT=Date.now();oZoom=z;document.getElementById('sig').classList.add('show')}
+    if(sigL){
+      const e=Date.now()-sigLT;const r=Math.max(0,Math.ceil((SIG_T-e)/1000));
+      document.getElementById('sig-tmr').textContent=r;
+      const p=Math.min(1,e/(SIG_T*.8));const tz=Math.max(3,oZoom-Math.floor(p*8));
+      if(tz!==z){z=tz;tC={}}
+      if(e>=SIG_T){gRun=false;sigL=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});document.getElementById('sig').classList.remove('show');showOv('★ 消星成功 ★','#3ccf7a','目标丢失 60 秒');setS(0);stopChase();}
+    }
+    const d2=hav(cLat,cLng,dLat,dLng);
+    if(d2<100&&!sigL){gRun=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});showOv('★ 消星成功 ★','#3ccf7a','到达目标 100m 范围');setS(0);stopChase();}
+    render();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
 initC();render();requestAnimationFrame(gameLoop);
 </script>
 </body>
