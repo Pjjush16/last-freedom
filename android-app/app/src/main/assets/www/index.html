@@ -604,7 +604,7 @@ function buildUrl(x, y, z, layerType, proj, endpoint, key) {
 }
 function getAnnoType(t) { return {img:'cia',vec:'cva',ter:'cta'}[t]||'cia'; }
 
-// Tile loading via proxy
+// Tile loading - direct (WebView intercepts to add UA)
 function loadTile(x, y, z, layerType, proj, endpoint, key) {
   const k = `${layerType}/${proj}/${z}/${x}/${y}`;
   if (tileCache[k]) return tileCache[k];
@@ -616,14 +616,14 @@ function loadTile(x, y, z, layerType, proj, endpoint, key) {
   stats.load++;
   updateStats();
   
-  fetch('http://127.0.0.1:18765/tile?url=' + encodeURIComponent(url))
+  fetch(url)
     .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.blob(); })
     .then(blob => {
       // Auto-fallback: img_c placeholder is ~4769 bytes at high zoom, switch to img_w
       if (proj === 'c' && z >= 11 && blob.size >= 4500 && blob.size <= 5000 && layerType !== '_fallback') {
         const fallbackUrl = buildUrl(x, y, z, layerType, 'w', endpoint, key);
         loadingSet.delete(k);
-        fetch('http://127.0.0.1:18765/tile?url=' + encodeURIComponent(fallbackUrl))
+        fetch(fallbackUrl)
           .then(r2 => r2.blob())
           .then(b2 => {
             const blobUrl2 = URL.createObjectURL(b2);
@@ -1106,7 +1106,7 @@ function testSingleTile() {
   const tx = Math.floor((centerLng+180)/360*n);
   const ty = Math.floor(latToPixelY(centerLat,zoom)/256);
   const url = buildUrl(tx, ty, zoom, layerType, proj, endpoint, key);
-  fetch('http://127.0.0.1:18765/tile?url='+encodeURIComponent(url))
+  fetch(url)
     .then(r => { alert(`HTTP ${r.status}, type=${r.headers.get('content-type')}`); return r.blob(); })
     .then(b => alert(`Size: ${b.size} bytes`))
     .catch(e => alert(`Error: ${e.message}`));
