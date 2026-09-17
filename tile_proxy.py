@@ -14,12 +14,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=STATIC_DIR, **kwargs)
 
     def do_GET(self):
-        if self.path.startswith('/tile/'):
+        if self.path.startswith('/proxy_tile?'):
+            self.proxy_tile_generic()
+        elif self.path.startswith('/tile/'):
             self.proxy_tile()
         elif 'tianditu.gov.cn' in self.path:
             self.proxy_direct()
         else:
             super().do_GET()
+
+    def proxy_tile_generic(self):
+        """Proxy /proxy_tile?url=<encoded_url> with custom UA."""
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        url = params.get('url', [None])[0]
+        if not url:
+            self.send_error(400, "Missing url parameter")
+            return
+        self._fetch(url)
 
     def proxy_tile(self):
         parts = self.path.strip('/').split('/')

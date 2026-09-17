@@ -372,13 +372,21 @@ canvas#map:active{cursor:grabbing}
   <div class="ctrl-btn" id="btn-dbg" onclick="document.getElementById('dbg').classList.toggle('show')" title="设置">⚙</div>
 </div>
 
-<!-- 调试面板 -->
+<!-- 设置面板 -->
 <div id="dbg">
-  <label>图层: ArcGIS 卫星影像（全球覆盖，无需Key）</label>
+  <label>地图源</label>
+  <select id="map-src" onchange="switchSource()">
+    <option value="arcgis_sat">ArcGIS 卫星影像（全球）</option>
+    <option value="arcgis_street">ArcGIS 街道地图（全球）</option>
+    <option value="arcgis_natgeo">ArcGIS 国家地理（全球）</option>
+    <option value="tianditu_sat">天地图 卫星影像（中国）</option>
+    <option value="tianditu_vec">天地图 矢量+注记（中国）</option>
+    <option value="amap_sat">高德地图 卫星影像（中国）</option>
+    <option value="amap_road">高德地图 路网地图（中国）</option>
+  </select>
   <label>缩放: <span id="zl">15</span></label>
   <input type="range" id="zr" min="3" max="18" value="15">
   <button onclick="apply()">重新加载</button>
-  <button onclick="testTile()">测试瓦片</button>
   <div id="dbg-stats">瓦片: OK=0 Fail=0 Load=0</div>
 </div>
 
@@ -408,9 +416,32 @@ canvas#map:active{cursor:grabbing}
 </div>
 
 <script>
-// Tile fetch - Tauri invoke or direct fetch
+// Tile fetch - Tauri invoke or direct fetch (tianditu goes through proxy)
 const isTauri=!!(window.__TAURI__&&window.__TAURI__.invoke);
-async function fetchTileUrl(url){if(isTauri){const bytes=await window.__TAURI__.invoke("fetch_tile",{url});return new Blob([new Uint8Array(bytes)],{type:"image/png"})}const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.blob()}
+async function fetchTileUrl(url,needsUA){
+  if(isTauri){const bytes=await window.__TAURI__.invoke("fetch_tile",{url});return new Blob([new Uint8Array(bytes)],{type:"image/png"})}
+  if(needsUA){const proxyUrl='http://127.0.0.1:18765/proxy_tile?url='+encodeURIComponent(url);const r=await fetch(proxyUrl);if(!r.ok)throw new Error(r.status);return r.blob()}
+  const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.blob()
+}
+
+// ===== 地图源配置 =====
+const TIANDITU_KEY='526d518941b3e52f37d0015698800f74';
+const MAP_SOURCES={
+  arcgis_sat:{name:'ArcGIS 卫星影像',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`},
+  arcgis_street:{name:'ArcGIS 街道地图',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`},
+  arcgis_natgeo:{name:'ArcGIS 国家地理',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/${z}/${y}/${x}`},
+  tianditu_sat:{name:'天地图卫星',needUA:true,url:(x,y,z)=>{const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=img_w&X=${x}&Y=${y}&L=${z}&tk=${TIANDITU_KEY}`}},
+  tianditu_vec:{name:'天地图矢量+注记',needUA:true,url:(x,y,z)=>{const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=vec_w&X=${x}&Y=${y}&L=${z}&tk=${TIANDITU_KEY}`},overlay:(x,y,z)=>{const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=cva_w&X=${x}&Y=${y}&L=${z}&tk=${TIANDITU_KEY}`}},
+  amap_sat:{name:'高德卫星',needUA:false,url:(x,y,z)=>`https://webst0${(x+y)%4+1}.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`},
+  amap_road:{name:'高德路网',needUA:false,url:(x,y,z)=>`https://webrd0${(x+y)%4+1}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=${x}&y=${y}&z=${z}`}
+};
+let curSrc='arcgis_sat';
+function switchSource(){
+  const sel=document.getElementById('map-src');
+  curSrc=sel.value;
+  tC={};tF={};st={ok:0,fl:0,ld:0};lS=new Set();
+  uSt();render();
+}
 
 // ===== 音乐 =====
 const CM=[new Audio('music/cmon.m4a'),new Audio('music/she_makes_me_go.m4a')];
@@ -444,30 +475,46 @@ let cStars=0;
 function setS(n){cStars=n;for(let i=1;i<=7;i++)document.getElementById('s'+i).className=i<=n?'star on':'star'}
 
 // ===== 地图瓦片 =====
-let cLat=34.0522,cLng=-118.2437,z=15;
+let cLat=39.9042,cLng=116.4074,z=15;
 let tC={},tF={},st={ok:0,fl:0,ld:0},lS=new Set(),cv,cx,vW,vH;
 
 function l2x(l,z){return((l+180)/360)*(1<<z)*256}
 function a2y(a,z){return((1-Math.log(Math.tan(a*Math.PI/180)+1/Math.cos(a*Math.PI/180))/Math.PI)/2)*(1<<z)*256}
 function x2l(p,z){return p/((1<<z)*256)*360-180}
 function y2a(p,z){return Math.atan(Math.sinh(Math.PI*(1-2*p/((1<<z)*256))))*180/Math.PI}
-function bU(x,y,z){return`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`}
+
+function bU(x,y,z){return MAP_SOURCES[curSrc].url(x,y,z)}
 function aT(t){return{img:'cia',vec:'cva'}[t]||'cia'}
 
 function lT(x,y,z){
-  const c=`${z}/${x}/${y}`;
+  const src=MAP_SOURCES[curSrc];
+  const c=`${curSrc}/${z}/${x}/${y}`;
   if(tC[c])return tC[c];
-  if(tF[c]>=3)return null;
+  if((tF[c]||0)>=3)return null;
   if(lS.has(c))return null;
-  const u=bU(x,y,z);
+  const u=src.url(x,y,z);
   lS.add(c);st.ld++;uSt();
-  fetchTileUrl(u).then(b=>{
+  fetchTileUrl(u,src.needUA).then(b=>{
     const bu=URL.createObjectURL(b);
     const i=new Image();
     i.onload=()=>{tC[c]=i;tF[c]=0;st.ok++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};
     i.onerror=()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render();URL.revokeObjectURL(bu)};
     i.src=bu
   }).catch(()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render()});
+  if(src.overlay){
+    const oc=`${curSrc}_ov/${z}/${x}/${y}`;
+    if(!tC[oc]&&(tF[oc]||0)<3&&!lS.has(oc)){
+      lS.add(oc);
+      const ou=src.overlay(x,y,z);
+      fetchTileUrl(ou,src.needUA).then(b=>{
+        const bu=URL.createObjectURL(b);
+        const i=new Image();
+        i.onload=()=>{tC[oc]=i;tF[oc]=0;lS.delete(oc);render();URL.revokeObjectURL(bu)};
+        i.onerror=()=>{tF[oc]=(tF[oc]||0)+1;lS.delete(oc);render();URL.revokeObjectURL(bu)};
+        i.src=bu
+      }).catch(()=>{tF[oc]=(tF[oc]||0)+1;lS.delete(oc)});
+    }
+  }
   return null
 }
 function uSt(){document.getElementById('dbg-stats').textContent=`瓦片: OK=${st.ok} Fail=${st.fl} Load=${st.ld}`}
@@ -653,6 +700,7 @@ function render(){
       if(tx<0||ty<0||tx>=mT||ty>=mT)continue;
       const sx=tx*256-px0+vW/2;const sy=ty*256-py0+vH/2+offY;
       const i=lT(tx,ty,z);if(i)cx.drawImage(i,sx,sy,256,256);
+      const oc=`${curSrc}_ov/${z}/${tx}/${ty}`;if(tC[oc])cx.drawImage(tC[oc],sx,sy,256,256);
     }
   }
 
@@ -730,11 +778,12 @@ function showOv(t,c,s){
   setTimeout(()=>e.className='',3000);
 }
 
-function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};render()}
+function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};lS=new Set();render()}
 function testTile(){
   const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);
-  const u=bU(tx,ty,z);
-  fetchTileUrl(u).then(()=>alert('HTTP 200')).catch(e=>alert('Error: '+e.message));
+  const src=MAP_SOURCES[curSrc];
+  const u=src.url(tx,ty,z);
+  fetchTileUrl(u,src.needUA).then(()=>alert('HTTP 200 ('+src.name+')')).catch(e=>alert('Error: '+e.message));
 }
 
 document.getElementById('zr').addEventListener('input',e=>{document.getElementById('zl').textContent=e.target.value});
