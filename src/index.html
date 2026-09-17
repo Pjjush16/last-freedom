@@ -449,12 +449,6 @@ canvas#map:active{cursor:grabbing}
   <label>地图源</label>
   <select id="map-src" onchange="switchSource()">
     <option value="arcgis_sat">ArcGIS 卫星影像（全球）</option>
-    <option value="arcgis_street">ArcGIS 街道地图（全球）</option>
-    <option value="arcgis_natgeo">ArcGIS 国家地理（全球）</option>
-    <option value="tianditu_sat">天地图 卫星影像（中国）</option>
-    <option value="tianditu_vec">天地图 矢量+注记（中国）</option>
-    <option value="amap_sat">高德地图 卫星影像（中国）</option>
-    <option value="amap_road">高德地图 路网地图（中国）</option>
   </select>
   <label>缩放: <span id="zl">15</span></label>
   <input type="range" id="zr" min="3" max="18" value="15">
@@ -486,13 +480,7 @@ async function fetchTileUrl(url,needsUA){
 // ===== 地图源配置 =====
 const TIANDITU_KEY='526d518941b3e52f37d0015698800f74';
 const MAP_SOURCES={
-  arcgis_sat:{name:'ArcGIS 卫星影像',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`},
-  arcgis_street:{name:'ArcGIS 街道地图',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`},
-  arcgis_natgeo:{name:'ArcGIS 国家地理',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/${z}/${y}/${x}`},
-  tianditu_sat:{name:'天地图卫星',needUA:true,url:(x,y,z)=>{const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=img_w&X=${x}&Y=${y}&L=${z}&tk=${TIANDITU_KEY}`}},
-  tianditu_vec:{name:'天地图矢量+注记',needUA:true,url:(x,y,z)=>{const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=vec_w&X=${x}&Y=${y}&L=${z}&tk=${TIANDITU_KEY}`},overlay:(x,y,z)=>{const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=cva_w&X=${x}&Y=${y}&L=${z}&tk=${TIANDITU_KEY}`}},
-  amap_sat:{name:'高德卫星',needUA:false,url:(x,y,z)=>`https://webst0${(x+y)%4+1}.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`},
-  amap_road:{name:'高德路网',needUA:false,url:(x,y,z)=>`https://webrd0${(x+y)%4+1}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=${x}&y=${y}&z=${z}`}
+  arcgis_sat:{name:'ArcGIS 卫星影像',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`}
 };
 let curSrc='arcgis_sat';
 function switchSource(){
