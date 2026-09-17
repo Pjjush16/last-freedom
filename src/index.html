@@ -374,16 +374,11 @@ canvas#map:active{cursor:grabbing}
 
 <!-- 调试面板 -->
 <div id="dbg">
-  <label>天地图 Key</label>
-  <input type="text" id="ki" value="">
-  <label>图层</label>
-  <select id="lt"><option value="img">卫星影像</option><option value="vec">矢量地图</option></select>
-  <label>投影</label>
-  <select id="pj"><option value="w" selected>墨卡托</option><option value="c">经纬度</option></select>
+  <label>图层: ArcGIS 卫星影像（全球覆盖，无需Key）</label>
   <label>缩放: <span id="zl">15</span></label>
   <input type="range" id="zr" min="3" max="18" value="15">
-  <button onclick="apply()">应用并重载</button>
-  <button onclick="testTile()">测试单瓦片</button>
+  <button onclick="apply()">重新加载</button>
+  <button onclick="testTile()">测试瓦片</button>
   <div id="dbg-stats">瓦片: OK=0 Fail=0 Load=0</div>
 </div>
 
@@ -392,7 +387,7 @@ canvas#map:active{cursor:grabbing}
   <button id="sp-close" onclick="closeSP()">✕</button>
   <div id="sp-hd">
     <h2>🚁 选择逃跑目的地</h2>
-    <input type="text" id="sp-inp" placeholder="输入坐标 (如 34.05, -118.25) 或关闭后点击地图" autocomplete="off">
+    <input type="text" id="sp-inp" placeholder="输入坐标 (如 39.91, 116.40) 或关闭后点击地图" autocomplete="off">
   </div>
   <div id="sp-hint">
     关闭此面板后，<b>单击地图任意位置</b>即可设为逃跑目的地<br>
@@ -456,17 +451,15 @@ function l2x(l,z){return((l+180)/360)*(1<<z)*256}
 function a2y(a,z){return((1-Math.log(Math.tan(a*Math.PI/180)+1/Math.cos(a*Math.PI/180))/Math.PI)/2)*(1<<z)*256}
 function x2l(p,z){return p/((1<<z)*256)*360-180}
 function y2a(p,z){return Math.atan(Math.sinh(Math.PI*(1-2*p/((1<<z)*256))))*180/Math.PI}
-function bU(x,y,z,lt,pj,k){const s=x%8;return`https://t${s}.tianditu.gov.cn/DataServer?T=${lt}_${pj}&X=${x}&Y=${y}&L=${z}&tk=${k}`}
+function bU(x,y,z){return`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`}
 function aT(t){return{img:'cia',vec:'cva'}[t]||'cia'}
 
-function lT(x,y,z,lt,pj){
-  const k=document.getElementById('ki').value.trim();
-  if(!k)return null;
-  const c=`${lt}/${pj}/${z}/${x}/${y}`;
+function lT(x,y,z){
+  const c=`${z}/${x}/${y}`;
   if(tC[c])return tC[c];
   if(tF[c]>=3)return null;
   if(lS.has(c))return null;
-  const u=bU(x,y,z,lt,pj,k);
+  const u=bU(x,y,z);
   lS.add(c);st.ld++;uSt();
   fetchTileUrl(u).then(b=>{
     const bu=URL.createObjectURL(b);
@@ -534,7 +527,7 @@ document.getElementById('sp-inp').addEventListener('keydown',e=>{
     const v=e.target.value.trim();
     const m=v.match(/^(-?\d+\.?\d*)\s*[,;]\s*(-?\d+\.?\d*)$/);
     if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);if(a>=-90&&a<=90&&b>=-180&&b<=180)pickPt(a,b);else alert('坐标超出范围')}
-    else if(v)alert('请输入经纬度坐标，如: 34.05, -118.25');
+    else if(v)alert('请输入经纬度坐标，如: 39.91, 116.40');
   }
   if(e.key==='Escape')closeSP();
 });
@@ -588,10 +581,7 @@ function recenter(){
 function zoomIn(){if(z<18){z++;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
 function zoomOut(){if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
 function toggleLayer(){
-  const lt=document.getElementById('lt');
-  lt.value=lt.value==='img'?'vec':'img';
   tC={};render();
-  document.getElementById('btn-layer').classList.toggle('active',lt.value==='img');
 }
 
 // ===== Canvas 交互 =====
@@ -652,7 +642,6 @@ function hav(a1,o1,a2,o2){const R=6371000;const d1=(a2-a1)*Math.PI/180;const d2=
 // ===== 渲染 =====
 function render(){
   cx.fillStyle='#0a0e14';cx.fillRect(0,0,vW,vH);
-  const pj=document.getElementById('pj').value;const lt=document.getElementById('lt').value;const at=aT(lt);
   const px0=l2x(cLng,z);const py0=a2y(cLat,z);
   const pY=vH*.65;const offY=vH/2-pY;
   const tX=Math.ceil(vW/256)+2;const tY=Math.ceil(vH/256)+2;
@@ -663,8 +652,7 @@ function render(){
       const tx=cX+dx,ty=cY+dy;
       if(tx<0||ty<0||tx>=mT||ty>=mT)continue;
       const sx=tx*256-px0+vW/2;const sy=ty*256-py0+vH/2+offY;
-      const i=lT(tx,ty,z,lt,pj);if(i)cx.drawImage(i,sx,sy,256,256);
-      const a=lT(tx,ty,z,at,pj);if(a)cx.drawImage(a,sx,sy,256,256);
+      const i=lT(tx,ty,z);if(i)cx.drawImage(i,sx,sy,256,256);
     }
   }
 
@@ -744,11 +732,8 @@ function showOv(t,c,s){
 
 function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};render()}
 function testTile(){
-  const k=document.getElementById('ki').value.trim();
-  if(!k){alert('请输入天地图 Key');return}
-  const lt=document.getElementById('lt').value;const pj=document.getElementById('pj').value;
   const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);
-  const u=bU(tx,ty,z,lt,pj,k);
+  const u=bU(tx,ty,z);
   fetchTileUrl(u).then(()=>alert('HTTP 200')).catch(e=>alert('Error: '+e.message));
 }
 
