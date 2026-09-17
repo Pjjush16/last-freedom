@@ -196,6 +196,12 @@ canvas#map:active{cursor:grabbing}
   font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);
   letter-spacing:1px;pointer-events:none;
 }
+/* ===== Esri 署名 ===== */
+#esri-attribution{
+  position:fixed;bottom:4px;right:8px;z-index:25;
+  font-size:9px;color:rgba(255,255,255,0.5);
+  pointer-events:none;
+}
 
 /* ===== 安全警告 ===== */
 #safe{
@@ -412,6 +418,8 @@ canvas#map:active{cursor:grabbing}
 
 <!-- 水印 -->
 <div id="watermark">争取最后的自由 · bilibili</div>
+<!-- Esri 署名 -->
+<div id="esri-attribution">© Esri, Maxar, Earthstar Geographics, and the GIS User Community</div>
 
 <!-- 安全警告 -->
 <div id="safe">⚠ 剧情演绎 请勿模仿</div>
@@ -448,7 +456,10 @@ canvas#map:active{cursor:grabbing}
 <div id="dbg">
   <label>地图源</label>
   <select id="map-src" onchange="switchSource()">
-    <option value="arcgis_sat">ArcGIS 卫星影像（全球）</option>
+    <option value="arcgis_sat">ArcGIS World Imagery（最清晰）</option>
+    <option value="arcgis_clarity">ArcGIS Clarity（增强细节）</option>
+    <option value="arcgis_firefly">ArcGIS Firefly（低饱和风格）</option>
+    <option value="arcgis_wayback">ArcGIS Wayback（历史影像）</option>
   </select>
   <label>缩放: <span id="zl">15</span></label>
   <input type="range" id="zr" min="3" max="18" value="15">
@@ -480,7 +491,10 @@ async function fetchTileUrl(url,needsUA){
 // ===== 地图源配置 =====
 const TIANDITU_KEY='526d518941b3e52f37d0015698800f74';
 const MAP_SOURCES={
-  arcgis_sat:{name:'ArcGIS 卫星影像',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`}
+  arcgis_sat:{name:'ArcGIS World Imagery',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`},
+  arcgis_clarity:{name:'ArcGIS Clarity',needUA:false,url:(x,y,z)=>`https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`},
+  arcgis_firefly:{name:'ArcGIS Firefly',needUA:false,url:(x,y,z)=>`https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/${z}/${y}/${x}`},
+  arcgis_wayback:{name:'ArcGIS Wayback',needUA:false,url:(x,y,z)=>`https://wayback-a.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/10/${z}/${y}/${x}`}
 };
 let curSrc='arcgis_sat';
 function switchSource(){
