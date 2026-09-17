@@ -37,6 +37,86 @@ canvas#map:active{cursor:grabbing}
 @keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 @keyframes breathe{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.08);opacity:1}}
+@keyframes crossPulse{0%,100%{opacity:0.7;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}
+@keyframes pinDrop{0%{transform:translate(-50%,-100%) scale(0.5);opacity:0}60%{transform:translate(-50%,-50%) scale(1.1)}80%{transform:translate(-50%,-50%) scale(0.95)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+
+/* ===== 选点准星覆盖层（高德风格 - 固定在屏幕中央） ===== */
+#crosshair{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:35;pointer-events:none;
+  width:120px;height:120px;
+  animation:fadeIn .3s ease-out;
+}
+/* 外圈 */
+#crosshair .ring{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:72px;height:72px;border-radius:50%;
+  border:2px solid rgba(79,156,255,0.6);
+  box-shadow:0 0 20px rgba(79,156,255,0.2), inset 0 0 12px rgba(79,156,255,0.1);
+  animation:crossPulse 2.5s ease-in-out infinite;
+}
+/* 内圈 */
+#crosshair .inner{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:24px;height:24px;border-radius:50%;
+  border:1.5px solid rgba(79,156,255,0.4);
+}
+/* 十字线 */
+#crosshair .h-line,#crosshair .v-line{
+  position:absolute;background:rgba(79,156,255,0.5);
+}
+#crosshair .h-line{top:50%;left:0;right:0;height:1.5px;transform:translateY(-50%)}
+#crosshair .v-line{left:50%;top:0;bottom:0;width:1.5px;transform:translateX(-50%)}
+/* 中心点 */
+#crosshair .dot{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 10px var(--accent);
+}
+/* 四角方括号 */
+#crosshair .corner{
+  position:absolute;width:16px;height:16px;
+  border-color:rgba(79,156,255,0.5);border-style:solid;border-width:0;
+}
+#crosshair .c-tl{top:4px;left:4px;border-top-width:2px;border-left-width:2px;border-radius:3px 0 0 0}
+#crosshair .c-tr{top:4px;right:4px;border-top-width:2px;border-right-width:2px;border-radius:0 3px 0 0}
+#crosshair .c-bl{bottom:4px;left:4px;border-bottom-width:2px;border-left-width:2px;border-radius:0 0 0 3px}
+#crosshair .c-br{bottom:4px;right:4px;border-bottom-width:2px;border-right-width:2px;border-radius:0 0 3px 0}
+/* 坐标标签 */
+#crosshair .coord-label{
+  position:absolute;bottom:-32px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(10,14,20,0.85);
+  border:1px solid var(--border);
+  border-radius:8px;padding:4px 12px;
+  font-size:11px;font-family:var(--m);
+  color:var(--dim);white-space:nowrap;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+
+/* ===== 选点提示（顶部） ===== */
+#pick-hint{
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);
+  z-index:26;
+  font-size:12px;font-weight:600;color:rgba(79,156,255,0.9);
+  background:rgba(79,156,255,0.08);
+  border:1px solid rgba(79,156,255,0.2);
+  padding:8px 20px;border-radius:24px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  pointer-events:none;
+  animation:slideDown .4s ease-out;
+  display:flex;align-items:center;gap:8px;
+}
+#pick-hint::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 8px var(--accent);
+  animation:pulse 1.5s infinite;
+}
 
 /* ===== Top Status Bar (车机风格) ===== */
 #top-bar{
@@ -157,7 +237,7 @@ canvas#map:active{cursor:grabbing}
 #sub-t.chase::before{background:var(--danger);box-shadow:0 0 8px var(--danger)}
 #sub-t.win::before{background:var(--navi);box-shadow:0 0 8px var(--navi)}
 
-/* ===== 底部逃跑目的地面板（车机风格） ===== */
+/* ===== 底部面板（选点态 + 追逐态 共用容器） ===== */
 #dest-card{
   position:fixed;bottom:16px;left:16px;right:16px;
   z-index:20;
@@ -170,6 +250,7 @@ canvas#map:active{cursor:grabbing}
   box-shadow:0 8px 32px rgba(0,0,0,0.4);
   animation:slideUp .4s ease-out .2s both;
   display:flex;align-items:center;gap:16px;
+  transition:all .3s ease;
 }
 #dest-icon{
   width:48px;height:48px;border-radius:12px;
@@ -177,67 +258,40 @@ canvas#map:active{cursor:grabbing}
   display:flex;align-items:center;justify-content:center;
   font-size:22px;flex-shrink:0;
   box-shadow:0 4px 16px var(--accent-g);
+  transition:all .3s;
+}
+#dest-icon.pick-mode{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  box-shadow:0 4px 16px rgba(99,102,241,0.4);
+  animation:breathe 3s ease-in-out infinite;
 }
 #dest-body{flex:1;min-width:0}
 #dest-label{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);letter-spacing:1.5px;margin-bottom:4px}
 #dest-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #dest-meta{font-size:11px;color:var(--dim);margin-top:2px;font-family:var(--m);font-variant-numeric:tabular-nums}
 #dest-meta b{color:var(--accent);font-weight:600}
+/* 选点态：坐标大字显示 */
+#dest-coord{
+  font-size:13px;font-weight:600;color:var(--accent);
+  font-family:var(--m);font-variant-numeric:tabular-nums;
+  letter-spacing:0.5px;margin-top:3px;
+  transition:color .2s;
+}
 #dest-btn{
-  padding:12px 22px;
+  padding:14px 28px;
   background:linear-gradient(135deg,var(--accent),#6366f1);
   border:none;border-radius:12px;
-  color:#fff;font-size:14px;font-weight:700;font-family:var(--f);
+  color:#fff;font-size:15px;font-weight:700;font-family:var(--f);
   cursor:pointer;white-space:nowrap;
   box-shadow:0 4px 16px var(--accent-g);
   transition:all .2s;
   position:relative;overflow:hidden;
+  min-height:48px;
 }
 #dest-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);background-size:200% 100%;animation:shimmer 3s infinite}
 #dest-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--accent-g)}
 #dest-btn.go{background:linear-gradient(135deg,var(--danger),#dc2626);box-shadow:0 4px 16px rgba(255,87,87,0.4)}
 #dest-btn.stop{background:linear-gradient(135deg,var(--warn),#d97706);box-shadow:0 4px 16px rgba(255,184,77,0.4)}
-
-/* ===== 目的地选择弹窗 ===== */
-#sp{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  z-index:60;
-  background:var(--panel-hi);
-  border-top:1px solid var(--border);
-  border-radius:24px 24px 0 0;
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
-  box-shadow:0 -8px 40px rgba(0,0,0,0.5);
-  max-height:60vh;
-  animation:slideUp .3s ease-out;
-}
-#sp.show{display:block}
-#sp-hd{padding:22px 24px 16px;border-bottom:1px solid var(--border)}
-#sp-hd h2{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
-#sp-inp{
-  width:100%;padding:14px 18px;
-  background:rgba(255,255,255,0.05);
-  border:1px solid var(--border);
-  border-radius:14px;
-  color:var(--txt);font-size:15px;font-family:var(--f);outline:none;
-  transition:all .2s;
-}
-#sp-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g)}
-#sp-inp::placeholder{color:var(--muted)}
-#sp-hint{
-  padding:18px 24px;
-  text-align:center;color:var(--dim);font-size:13px;line-height:1.7;
-}
-#sp-hint b{color:var(--accent);font-weight:600}
-#sp-close{
-  position:absolute;top:16px;right:20px;
-  width:32px;height:32px;border-radius:50%;
-  background:rgba(255,255,255,0.06);
-  border:none;color:var(--dim);font-size:18px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-}
-#sp-close:hover{background:rgba(255,255,255,0.12);color:var(--txt)}
 
 /* ===== 结果覆盖层 ===== */
 #ov{
@@ -317,6 +371,23 @@ canvas#map:active{cursor:grabbing}
 <body>
 <canvas id="map"></canvas>
 
+<!-- 选点准星覆盖层（高德风格：固定在屏幕中央） -->
+<div id="crosshair">
+  <div class="ring"></div>
+  <div class="inner"></div>
+  <div class="h-line"></div>
+  <div class="v-line"></div>
+  <div class="dot"></div>
+  <div class="corner c-tl"></div>
+  <div class="corner c-tr"></div>
+  <div class="corner c-bl"></div>
+  <div class="corner c-br"></div>
+  <div class="coord-label" id="cross-coord">--</div>
+</div>
+
+<!-- 选点提示（顶部） -->
+<div id="pick-hint">拖动地图 · 将准星对准逃跑目的地</div>
+
 <!-- 顶部：速度 + 道路 + 星星 -->
 <div id="top-bar">
   <div id="nav-card">
@@ -326,7 +397,7 @@ canvas#map:active{cursor:grabbing}
     </div>
     <div id="nav-info">
       <div id="rd-n">等待出发</div>
-      <div id="rd-s">点击地图选择逃跑目的地</div>
+      <div id="rd-s">拖动地图选择逃跑目的地</div>
     </div>
   </div>
   <div id="status">
@@ -352,15 +423,16 @@ canvas#map:active{cursor:grabbing}
 <!-- 押韵字幕条 -->
 <div id="sub"><div id="sub-t" class="idle">给我闹！</div></div>
 
-<!-- 底部逃跑目的地面板 -->
+<!-- 底部面板（选点态 + 追逐态共用） -->
 <div id="dest-card">
-  <div id="dest-icon">🚁</div>
+  <div id="dest-icon" class="pick-mode">🎯</div>
   <div id="dest-body">
     <div id="dest-label">逃跑目的地</div>
-    <div id="dest-name">未选择</div>
-    <div id="dest-meta">点击地图选择逃跑目的地</div>
+    <div id="dest-name">拖动地图选择位置</div>
+    <div id="dest-coord">--</div>
+    <div id="dest-meta">缩放地图可精确定位</div>
   </div>
-  <button id="dest-btn" onclick="openSP()">选择目的地</button>
+  <button id="dest-btn" onclick="confirmDest()">确认目的地</button>
 </div>
 
 <!-- 右侧控制组 -->
@@ -388,19 +460,6 @@ canvas#map:active{cursor:grabbing}
   <input type="range" id="zr" min="3" max="18" value="15">
   <button onclick="apply()">重新加载</button>
   <div id="dbg-stats">瓦片: OK=0 Fail=0 Load=0</div>
-</div>
-
-<!-- 目的地选择弹窗 -->
-<div id="sp">
-  <button id="sp-close" onclick="closeSP()">✕</button>
-  <div id="sp-hd">
-    <h2>🚁 选择逃跑目的地</h2>
-    <input type="text" id="sp-inp" placeholder="输入坐标 (如 39.91, 116.40) 或关闭后点击地图" autocomplete="off">
-  </div>
-  <div id="sp-hint">
-    关闭此面板后，<b>单击地图任意位置</b>即可设为逃跑目的地<br>
-    也可直接输入经纬度坐标后按回车
-  </div>
 </div>
 
 <!-- 结果覆盖层 -->
@@ -534,7 +593,7 @@ setInterval(()=>{
   } else {
     ri=(ri+1)%rds.length;
     document.getElementById('rd-n').textContent=rds[ri];
-    document.getElementById('rd-s').textContent='点击地图选择逃跑目的地';
+    document.getElementById('rd-s').textContent='拖动地图选择逃跑目的地';
   }
 },3000);
 
@@ -543,6 +602,108 @@ let gSpd=0,gRun=false,dLat=0,dLng=0,dSet=false,cRad=0,lHdg=0,gST=0;
 let sigL=false,sigLT=0,oZoom=z,lkL=0,lkN=0,lSig=0;
 const SIG_T=60000;
 let startDist=0,sLat=null,sLng=null;
+
+// ===== 选点模式（高德风格：移图选点） =====
+let pickMode=true;       // true = 正在选点
+let isDragging=false;     // 用户正在拖动地图
+let dragEndTimer=null;    // 防抖计时器
+let lastCoordUpdate=0;    // 上次坐标更新时间
+
+// 获取当前准星指向的坐标（即地图中心）
+function getCenterCoord(){
+  return {lat:cLat, lng:cLng};
+}
+
+// 格式化坐标显示
+function fmtCoord(lat,lng){
+  const ns=lat>=0?'N':'S', ew=lng>=0?'E':'W';
+  return `${Math.abs(lat).toFixed(4)}°${ns}  ${Math.abs(lng).toFixed(4)}°${ew}`;
+}
+
+// 根据坐标猜测一个"地名"（模拟逆地理编码）
+function guessLocation(lat,lng){
+  // 粗略区域判断
+  if(lat>35&&lat<42&&lng>110&&lng<120) return '中国境内';
+  if(lat>30&&lat<50&&lng>-130&&lng<-100) return '北美地区';
+  if(lat>35&&lat<45&&lng>130&&lng<150) return '日本附近';
+  if(lat>48&&lat<60&&lng>-10&&lng<40) return '欧洲地区';
+  // 通用：用附近的街道名
+  return rds[Math.floor(Math.abs(lat*lng)*7)%rds.length];
+}
+
+// 防抖：地图停止移动后更新坐标显示
+function onMapMoveEnd(){
+  if(!pickMode) return;
+  const c=getCenterCoord();
+  const coordStr=fmtCoord(c.lat,c.lng);
+  // 更新准星下方坐标标签
+  document.getElementById('cross-coord').textContent=coordStr;
+  // 更新底部卡片
+  document.getElementById('dest-name').textContent=guessLocation(c.lat,c.lng);
+  document.getElementById('dest-coord').textContent=coordStr;
+  document.getElementById('dest-meta').textContent=`缩放级别 ${z} · 缩放越大定位越精确`;
+}
+
+// 地图开始拖动
+function onMapDragStart(){
+  if(!pickMode) return;
+  isDragging=true;
+  if(dragEndTimer){clearTimeout(dragEndTimer);dragEndTimer=null}
+  // 拖动中：显示"正在移动"状态
+  document.getElementById('dest-name').textContent='移动中...';
+  document.getElementById('dest-coord').textContent='松开后定位';
+}
+
+// 地图拖动中
+function onMapDragging(){
+  if(!pickMode) return;
+  const now=Date.now();
+  if(now-lastCoordUpdate>100){ // 节流：100ms 更新一次
+    lastCoordUpdate=now;
+    const c=getCenterCoord();
+    document.getElementById('cross-coord').textContent=fmtCoord(c.lat,c.lng);
+  }
+}
+
+// 地图拖动结束（防抖 400ms）
+function onMapDragEnd(){
+  if(!pickMode) return;
+  isDragging=false;
+  if(dragEndTimer) clearTimeout(dragEndTimer);
+  dragEndTimer=setTimeout(()=>{
+    onMapMoveEnd();
+    dragEndTimer=null;
+  },400);
+}
+
+// 确认目的地（高德风格：确认当前准星位置）
+function confirmDest(){
+  if(!pickMode) return;
+  const c=getCenterCoord();
+  sLat=c.lat; sLng=c.lng;
+
+  // 退出选点模式
+  pickMode=false;
+  document.getElementById('crosshair').style.display='none';
+  document.getElementById('pick-hint').style.display='none';
+
+  // 更新底部卡片为"准备出发"态
+  const icon=document.getElementById('dest-icon');
+  icon.classList.remove('pick-mode');
+  icon.textContent='🚁';
+
+  const d=hav(cLat,cLng,sLat,sLng);
+  const km=(d/1000).toFixed(1);
+  const streetName=guessLocation(sLat,sLng);
+  document.getElementById('dest-name').textContent=streetName;
+  document.getElementById('dest-coord').textContent='';
+  document.getElementById('dest-meta').innerHTML=`直线 <b>${km}km</b> · 威胁圈初始半径 ${(km*1.1).toFixed(1)}km`;
+
+  const btn=document.getElementById('dest-btn');
+  btn.textContent='🏃 开始逃跑';
+  btn.classList.add('go');
+  btn.onclick=startChase;
+}
 
 // 速度更新
 setInterval(()=>{
@@ -562,37 +723,6 @@ setInterval(()=>{
 // 星星更新
 setInterval(()=>{if(gRun){const e=(Date.now()-gST)/1000;setS(Math.min(7,Math.floor(e/15)+1))}},1000);
 
-// ===== UI 交互 =====
-function openSP(){
-  document.getElementById('sp').classList.add('show');
-  setTimeout(()=>document.getElementById('sp-inp').focus(),100);
-}
-function closeSP(){document.getElementById('sp').classList.remove('show')}
-
-document.getElementById('sp-inp').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){
-    const v=e.target.value.trim();
-    const m=v.match(/^(-?\d+\.?\d*)\s*[,;]\s*(-?\d+\.?\d*)$/);
-    if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);if(a>=-90&&a<=90&&b>=-180&&b<=180)pickPt(a,b);else alert('坐标超出范围')}
-    else if(v)alert('请输入经纬度坐标，如: 39.91, 116.40');
-  }
-  if(e.key==='Escape')closeSP();
-});
-
-function pickPt(a,b){
-  sLat=a;sLng=b;
-  const d=hav(cLat,cLng,a,b);
-  const km=(d/1000).toFixed(1);
-  const streetName=rds[Math.floor(Math.random()*rds.length)];
-  document.getElementById('dest-name').textContent=streetName;
-  document.getElementById('dest-meta').innerHTML=`直线 <b>${km}km</b> · 威胁圈初始半径 ${km*1.1}km`;
-  document.getElementById('dest-btn').textContent='开始逃跑';
-  document.getElementById('dest-btn').classList.add('go');
-  document.getElementById('dest-btn').classList.remove('stop');
-  document.getElementById('dest-btn').onclick=startChase;
-  closeSP();
-}
-
 function startChase(){
   if(sLat===null)return;
   dLat=sLat;dLng=sLng;dSet=true;
@@ -601,7 +731,7 @@ function startChase(){
   cRad=d*1.1;startDist=d;
   gRun=true;gST=Date.now();
   setS(1);startM();
-  document.getElementById('dest-name').textContent=rds[Math.floor(Math.random()*rds.length)];
+  document.getElementById('dest-name').textContent=guessLocation(dLat,dLng);
   document.getElementById('dest-btn').textContent='放弃逃跑';
   document.getElementById('dest-btn').classList.add('stop');
   document.getElementById('dest-btn').classList.remove('go');
@@ -614,47 +744,68 @@ function stopChase(){
   gRun=false;stopM();
   dSet=false;sLat=null;sLng=null;
   setS(0);
-  document.getElementById('dest-name').textContent='未选择';
-  document.getElementById('dest-meta').textContent='点击地图选择逃跑目的地';
-  document.getElementById('dest-btn').textContent='选择目的地';
+
+  // 恢复选点模式
+  pickMode=true;
+  document.getElementById('crosshair').style.display='';
+  document.getElementById('pick-hint').style.display='';
+
+  const icon=document.getElementById('dest-icon');
+  icon.classList.add('pick-mode');
+  icon.textContent='🎯';
+
+  document.getElementById('dest-name').textContent='拖动地图选择位置';
+  document.getElementById('dest-coord').textContent='--';
+  document.getElementById('dest-meta').textContent='缩放地图可精确定位';
+  document.getElementById('dest-btn').textContent='确认目的地';
   document.getElementById('dest-btn').classList.remove('go','stop');
-  document.getElementById('dest-btn').onclick=openSP;
+  document.getElementById('dest-btn').onclick=confirmDest;
+
+  // 立即更新一次坐标
+  onMapMoveEnd();
 }
 
 function recenter(){
   if(dSet&&gRun){cLat=dLat+(Math.random()-.5)*.05;cLng=dLng+(Math.random()-.5)*.05}
   tC={};render();
+  if(pickMode) onMapDragEnd();
 }
-function zoomIn(){if(z<18){z++;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
-function zoomOut(){if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}}
+function zoomIn(){if(z<18){z++;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;if(pickMode)onMapDragEnd()}}
+function zoomOut(){if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;if(pickMode)onMapDragEnd()}}
 function toggleLayer(){
   tC={};render();
 }
 
-// ===== Canvas 交互 =====
+// ===== Canvas 交互（高德风格：拖动选点） =====
 function initC(){
   cv=document.getElementById('map');cx=cv.getContext('2d');
   vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;
   let drag=false,lx=0,ly=0,moved=false;
-  cv.addEventListener('mousedown',e=>{drag=true;moved=false;lx=e.clientX;ly=e.clientY});
+
+  // --- 鼠标事件 ---
+  cv.addEventListener('mousedown',e=>{
+    drag=true;moved=false;lx=e.clientX;ly=e.clientY;
+    if(pickMode) onMapDragStart();
+  });
   cv.addEventListener('mousemove',e=>{
     if(!drag)return;
     const dx=e.clientX-lx,dy=e.clientY-ly;
     if(Math.abs(dx)>2||Math.abs(dy)>2)moved=true;
     cLng=x2l(l2x(cLng,z)-dx,z);cLat=y2a(a2y(cLat,z)-dy,z);
     lx=e.clientX;ly=e.clientY;render();
+    if(pickMode) onMapDragging();
   });
   cv.addEventListener('mouseup',e=>{
     drag=false;
-    if(!moved&&!gRun){
-      const r=cv.getBoundingClientRect();
-      const px=l2x(cLng,z)+(e.clientX-r.left-vW/2);
-      const py=a2y(cLat,z)+(e.clientY-r.top-vH/2);
-      pickPt(y2a(py,z),x2l(px,z));
+    if(pickMode && moved){
+      onMapDragEnd();
     }
   });
-  cv.addEventListener('dblclick',()=>{if(!gRun)openSP()});
-  cv.addEventListener('mouseleave',()=>drag=false);
+  cv.addEventListener('mouseleave',()=>{
+    if(drag&&pickMode) onMapDragEnd();
+    drag=false;
+  });
+  // 滚轮缩放
   cv.addEventListener('wheel',e=>{
     e.preventDefault();
     if(e.deltaY<0&&z<18)z++;
@@ -662,25 +813,27 @@ function initC(){
     document.getElementById('zr').value=z;
     document.getElementById('zl').textContent=z;
     tC={};st={ok:0,fl:0,ld:0};render();
+    if(pickMode) onMapDragEnd();
   },{passive:false});
 
+  // --- 触摸事件 ---
   let tx=0,ty=0,tm=false;
-  cv.addEventListener('touchstart',e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;tm=false});
+  cv.addEventListener('touchstart',e=>{
+    const t=e.touches[0];tx=t.clientX;ty=t.clientY;tm=false;
+    if(pickMode) onMapDragStart();
+  });
   cv.addEventListener('touchmove',e=>{
     e.preventDefault();
     const t=e.touches[0];const dx=t.clientX-tx,dy=t.clientY-ty;
     if(Math.abs(dx)>3||Math.abs(dy)>3)tm=true;
     cLng=x2l(l2x(cLng,z)-dx,z);cLat=y2a(a2y(cLat,z)-dy,z);
     tx=t.clientX;ty=t.clientY;render();
+    if(pickMode) onMapDragging();
   },{passive:false});
   cv.addEventListener('touchend',e=>{
-    if(!tm&&!gRun&&e.changedTouches.length){
-      const t=e.changedTouches[0];
-      const px=l2x(cLng,z)+(t.clientX-vW/2);
-      const py=a2y(cLat,z)+(t.clientY-vH/2);
-      pickPt(y2a(py,z),x2l(px,z));
-    }
+    if(pickMode && tm) onMapDragEnd();
   });
+
   addEventListener('resize',()=>{vW=innerWidth;vH=innerHeight;cv.width=vW;cv.height=vH;render()});
 }
 
@@ -725,31 +878,33 @@ function render(){
     if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});showOv('被捕','#ff5757','威胁圈已追上');stopChase();}
   }
 
-  // 航拍准星
+  // 航拍准星（追逐模式下显示在画面中心偏上位置）
   const mx=vW/2,my=pY;
   if(dSet&&gRun)lHdg=Math.atan2(dLng-cLng,dLat-cLat)*180/Math.PI;
-  cx.save();cx.translate(mx,my);
-  const br=1+Math.sin(Date.now()/800)*.04;const oR=36*br;
-  const gc=gRun?'rgba(60,207,122,':'rgba(79,156,255,';
-  cx.beginPath();cx.arc(0,0,oR,0,Math.PI*2);cx.strokeStyle=gc+'0.5)';cx.lineWidth=2;cx.stroke();
-  cx.beginPath();cx.arc(0,0,12,0,Math.PI*2);cx.strokeStyle=gc+'0.4)';cx.lineWidth=1;cx.stroke();
-  cx.beginPath();cx.moveTo(-32,0);cx.lineTo(-14,0);cx.moveTo(14,0);cx.lineTo(32,0);
-  cx.moveTo(0,-32);cx.lineTo(0,-14);cx.moveTo(0,14);cx.lineTo(0,32);
-  cx.strokeStyle=gc+'0.5)';cx.lineWidth=1.2;cx.stroke();
-  if(gRun&&dSet){
-    cx.save();cx.rotate(lHdg*Math.PI/180);
-    cx.beginPath();cx.moveTo(0,-oR-8);cx.lineTo(-5,-oR-1);cx.lineTo(5,-oR-1);cx.closePath();
-    cx.fillStyle=gc+'0.7)';cx.fill();cx.restore();
-  }
-  // 准星旁信息
-  cx.font='11px "SF Mono",monospace';cx.fillStyle='rgba(255,255,255,0.6)';cx.textAlign='left';
-  const curRoad=rds[Math.floor((Date.now()/15000)%rds.length)];
-  cx.fillText(curRoad,oR+10,-4);
   if(gRun){
-    const kmRemain=(hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
-    cx.fillText(`目标 ${kmRemain}km`,oR+10,12);
+    cx.save();cx.translate(mx,my);
+    const br=1+Math.sin(Date.now()/800)*.04;const oR=36*br;
+    const gc=gRun?'rgba(60,207,122,':'rgba(79,156,255,';
+    cx.beginPath();cx.arc(0,0,oR,0,Math.PI*2);cx.strokeStyle=gc+'0.5)';cx.lineWidth=2;cx.stroke();
+    cx.beginPath();cx.arc(0,0,12,0,Math.PI*2);cx.strokeStyle=gc+'0.4)';cx.lineWidth=1;cx.stroke();
+    cx.beginPath();cx.moveTo(-32,0);cx.lineTo(-14,0);cx.moveTo(14,0);cx.lineTo(32,0);
+    cx.moveTo(0,-32);cx.lineTo(0,-14);cx.moveTo(0,14);cx.lineTo(0,32);
+    cx.strokeStyle=gc+'0.5)';cx.lineWidth=1.2;cx.stroke();
+    if(gRun&&dSet){
+      cx.save();cx.rotate(lHdg*Math.PI/180);
+      cx.beginPath();cx.moveTo(0,-oR-8);cx.lineTo(-5,-oR-1);cx.lineTo(5,-oR-1);cx.closePath();
+      cx.fillStyle=gc+'0.7)';cx.fill();cx.restore();
+    }
+    // 准星旁信息
+    cx.font='11px "SF Mono",monospace';cx.fillStyle='rgba(255,255,255,0.6)';cx.textAlign='left';
+    const curRoad=rds[Math.floor((Date.now()/15000)%rds.length)];
+    cx.fillText(curRoad,oR+10,-4);
+    if(gRun){
+      const kmRemain=(hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
+      cx.fillText(`目标 ${kmRemain}km`,oR+10,12);
+    }
+    cx.restore();
   }
-  cx.restore();
 
   // 引导线（准星→目的地）
   if(dSet&&gRun){
@@ -778,7 +933,7 @@ function showOv(t,c,s){
   setTimeout(()=>e.className='',3000);
 }
 
-function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};lS=new Set();render()}
+function apply(){z=parseInt(document.getElementById('zr').value);tC={};tF={};st={ok:0,fl:0,ld:0};lS=new Set();render();if(pickMode)onMapDragEnd()}
 function testTile(){
   const n=1<<z;const tx=Math.floor((cLng+180)/360*n);const ty=Math.floor(a2y(cLat,z)/256);
   const src=MAP_SOURCES[curSrc];
@@ -821,7 +976,12 @@ function gameLoop(){
   requestAnimationFrame(gameLoop);
 }
 
-initC();render();requestAnimationFrame(gameLoop);
+// ===== 初始化 =====
+initC();
+render();
+// 初始加载时更新一次选点坐标
+setTimeout(onMapMoveEnd,500);
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
