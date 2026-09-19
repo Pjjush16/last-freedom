@@ -447,6 +447,7 @@ canvas#map:active{cursor:grabbing}
 <div id="controls">
   <div class="ctrl-btn" id="btn-recenter" onclick="recenter()" title="回到中心">📍</div>
   <div class="ctrl-btn" id="btn-zoom-in" onclick="zoomIn()" title="放大">＋</div>
+  <div class="ctrl-btn" id="btn-zoom-lock" onclick="toggleZoomLock()" title="锁定缩放">🔒</div>
   <div class="ctrl-btn" id="btn-zoom-out" onclick="zoomOut()" title="缩小">－</div>
   <div class="ctrl-btn" id="btn-layer" onclick="toggleLayer()" title="切换图层">🛰</div>
   <div class="ctrl-btn" id="btn-dbg" onclick="document.getElementById('dbg').classList.toggle('show')" title="设置">⚙</div>
@@ -603,6 +604,11 @@ setInterval(()=>{
 let gSpd=0,gRun=false,dLat=0,dLng=0,dSet=false,cRad=0,lHdg=0,gST=0;
 let sigL=false,sigLT=0,oZoom=z,lkL=0,lkN=0,lSig=0;
 const SIG_T=60000;
+// === 缩放锁定 + 迟滞死区 ===
+let zoomLocked=false,lastUserTouch=0;
+const AUTO_RESUME_MS=10000;
+let pendZoom=-1,pendZoomT=0;
+const HYST_MS=3000;
 let startDist=0,sLat=null,sLng=null;
 
 // ===== 选点模式（高德风格：移图选点） =====
@@ -772,8 +778,15 @@ function recenter(){
   tC={};render();
   if(pickMode) onMapDragEnd();
 }
-function zoomIn(){if(z<18){z++;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;if(pickMode)onMapDragEnd()}}
-function zoomOut(){if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;if(pickMode)onMapDragEnd()}}
+function zoomIn(){lastUserTouch=Date.now();if(z<18){z++;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;if(pickMode)onMapDragEnd()}}
+function zoomOut(){lastUserTouch=Date.now();if(z>3){z--;tC={};render();document.getElementById('zr').value=z;document.getElementById('zl').textContent=z;if(pickMode)onMapDragEnd()}}
+function toggleZoomLock(){
+  zoomLocked=!zoomLocked;
+  const el=document.getElementById('btn-zoom-lock');
+  if(zoomLocked){el.classList.add('active');el.style.color='#00e5ff';el.style.borderColor='#00e5ff';pendZoom=-1;pendZoomT=0}
+  else{el.classList.remove('active');el.style.color='';el.style.borderColor='';pendZoom=-1;pendZoomT=0}
+}
+function spd2z(s){if(s<=0)return 18;if(s<=30)return 18-(s/30);if(s<=60)return 17-((s-30)/30);if(s<=90)return 16-((s-60)/30);if(s<=120)return 15-((s-90)/30);if(s<=160)return 14-((s-120)/40);return 13}
 function toggleLayer(){
   tC={};render();
 }
@@ -787,6 +800,7 @@ function initC(){
   // --- 鼠标事件 ---
   cv.addEventListener('mousedown',e=>{
     drag=true;moved=false;lx=e.clientX;ly=e.clientY;
+    lastUserTouch=Date.now();
     if(pickMode) onMapDragStart();
   });
   cv.addEventListener('mousemove',e=>{
@@ -810,6 +824,7 @@ function initC(){
   // 滚轮缩放
   cv.addEventListener('wheel',e=>{
     e.preventDefault();
+    lastUserTouch=Date.now();
     if(e.deltaY<0&&z<18)z++;
     else if(e.deltaY>0&&z>1)z--;
     document.getElementById('zr').value=z;
@@ -951,6 +966,19 @@ function gameLoop(){
     const dx=dLng-cLng,dy=dLat-cLat;
     const sf=gSpd*.0000002;
     cLng+=dx*sf;cLat+=dy*sf;
+
+    // === 速度驱动缩放（迟滞死区 + 锁定）===
+    const now=Date.now();
+    const userTouched=(now-lastUserTouch)<AUTO_RESUME_MS;
+    if(!zoomLocked&&!userTouched&&!sigL){
+      const tz=Math.max(3,Math.min(18,spd2z(gSpd)));
+      if(Math.abs(tz-pendZoom)>0.3){pendZoom=tz;pendZoomT=now}
+      if(pendZoom>=0&&(now-pendZoomT)>=HYST_MS){
+        const nz=Math.round(pendZoom);
+        if(nz!==z){z=nz;tC={};document.getElementById('zr').value=z;document.getElementById('zl').textContent=z}
+        pendZoom=-1;pendZoomT=0;
+      }
+    } else {pendZoom=-1;pendZoomT=0}
 
     // 更新底部面板
     const dRemain=hav(cLat,cLng,dLat,dLng);
