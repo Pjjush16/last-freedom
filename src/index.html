@@ -515,8 +515,8 @@ const aM=new Audio('music/arrest_music.m4a');aM.volume=.8;
 const sM=new Audio('music/star_clear_music.m4a');sM.volume=.8;
 
 // ===== 贴纸轮换 =====
-const SK={b:'sticker/panda_driver_nobg.png',g:'sticker/anime_girl_nobg.png',gv:'sticker/anime_girl_variant_raw.png',p:'sticker/panda_running_raw.png'};
-const SS=[{l:'b',r:'g'},{l:'p',r:'gv'},{l:'b',r:'gv'},{l:'p',r:'g'}];
+const SK={b:'sticker/panda_driver_nobg.png',g:'sticker/anime_girl_nobg.png',gv:'sticker/anime_girl_variant_raw.png',p:'sticker/panda_running_raw.png',fm:'sticker/failed_man.webp',sa:'sticker/sticker_anime.png'};
+const SS=[{l:'fm',r:'sa'},{l:'b',r:'g'},{l:'fm',r:'gv'},{l:'p',r:'sa'}];
 let si=0;
 function rotS(){si=(si+1)%SS.length;document.getElementById('stk-li').src=SK[SS[si].l];document.getElementById('stk-ri').src=SK[SS[si].r]}
 (function(){document.getElementById('stk-li').src=SK[SS[0].l];document.getElementById('stk-ri').src=SK[SS[0].r];setInterval(rotS,30000)})();
@@ -708,9 +708,31 @@ function confirmDest(){
   document.getElementById('dest-meta').innerHTML=`直线 <b>${km}km</b> · 威胁圈初始半径 ${(km*1.1).toFixed(1)}km`;
 
   const btn=document.getElementById('dest-btn');
-  btn.textContent='🏃 开始逃跑';
+  btn.textContent='🏃 出发';
   btn.classList.add('go');
   btn.onclick=startChase;
+
+  // 新增"取消"按钮
+  const cancelBtn=document.createElement('button');
+  cancelBtn.id='dest-cancel';
+  cancelBtn.textContent='取消';
+  cancelBtn.style.cssText='background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:var(--r);padding:12px 24px;font-size:15px;font-family:var(--f);cursor:pointer;margin-right:10px';
+  cancelBtn.onclick=stopChase;
+  btn.parentNode.insertBefore(cancelBtn,btn);
+
+  // 缩小地图让两点都在屏幕内
+  const d=hav(cLat,cLng,sLat,sLng);
+  const mpp_cur=156543.03392*Math.cos(cLat*Math.PI/180)/(1<<z);
+  const pixDist=d/mpp_cur;
+  const maxPix=Math.min(vW,vH)*0.6;
+  if(pixDist>maxPix){
+    const need_mpp=d/maxPix;
+    const need_z=Math.log2(156543.03392*Math.cos(cLat*Math.PI/180)/need_mpp);
+    z=Math.max(3,Math.min(18,Math.floor(need_z)));
+    document.getElementById('zr').value=z;
+    document.getElementById('zl').textContent=z;
+  }
+  tC={};render();
 }
 
 // 速度更新
@@ -920,6 +942,21 @@ function render(){
       const kmRemain=(hav(cLat,cLng,dLat,dLng)/1000).toFixed(1);
       cx.fillText(`目标 ${kmRemain}km`,oR+10,12);
     }
+    cx.restore();
+  }
+
+  // 选点确认后：当前位置→终点红色连线（细线）
+  if(sLat!==null && !dSet && !gRun){
+    const sx=l2x(cLng,z)-px0+vW/2;const sy=a2y(cLat,z)-py0+vH/2+offY;
+    const ex=l2x(sLng,z)-px0+vW/2;const ey=a2y(sLat,z)-py0+vH/2+offY;
+    cx.save();
+    cx.beginPath();cx.moveTo(sx,sy);cx.lineTo(ex,ey);
+    cx.strokeStyle='rgba(255,87,87,0.7)';cx.lineWidth=1.5;cx.setLineDash([6,3]);cx.stroke();cx.setLineDash([]);
+    // 终点标记
+    cx.beginPath();cx.arc(ex,ey,6,0,Math.PI*2);cx.fillStyle='#ff5757';cx.fill();
+    cx.beginPath();cx.arc(ex,ey,10,0,Math.PI*2);cx.strokeStyle='rgba(255,87,87,0.4)';cx.lineWidth=1.5;cx.stroke();
+    // 当前位置标记
+    cx.beginPath();cx.arc(sx,sy,5,0,Math.PI*2);cx.fillStyle='#3ccf7a';cx.fill();
     cx.restore();
   }
 
