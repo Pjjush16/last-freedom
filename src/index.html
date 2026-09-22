@@ -491,11 +491,15 @@ async function fetchTileUrl(url,needsUA){
 
 // ===== 地图源配置 =====
 const TIANDITU_KEY='526d518941b3e52f37d0015698800f74';
+// 图层模式: 0=纯卫星 1=卫星+路网 2=卫星+路网+地名
+let layerMode=1;
+const ROAD_URL=(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/${z}/${y}/${x}`;
+const LABEL_URL=(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/${z}/${y}/${x}`;
 const MAP_SOURCES={
-  arcgis_sat:{name:'ArcGIS World Imagery',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`},
-  arcgis_clarity:{name:'ArcGIS Clarity',needUA:false,url:(x,y,z)=>`https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`},
-  arcgis_firefly:{name:'ArcGIS Firefly',needUA:false,url:(x,y,z)=>`https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/${z}/${y}/${x}`},
-  arcgis_wayback:{name:'ArcGIS Wayback',needUA:false,url:(x,y,z)=>`https://wayback-a.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/10/${z}/${y}/${x}`}
+  arcgis_sat:{name:'ArcGIS World Imagery',needUA:false,url:(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,overlay:(x,y,z)=>layerMode>=1?ROAD_URL(x,y,z):null,overlay2:(x,y,z)=>layerMode>=2?LABEL_URL(x,y,z):null},
+  arcgis_clarity:{name:'ArcGIS Clarity',needUA:false,url:(x,y,z)=>`https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,overlay:(x,y,z)=>layerMode>=1?ROAD_URL(x,y,z):null,overlay2:(x,y,z)=>layerMode>=2?LABEL_URL(x,y,z):null},
+  arcgis_firefly:{name:'ArcGIS Firefly',needUA:false,url:(x,y,z)=>`https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/${z}/${y}/${x}`,overlay:(x,y,z)=>layerMode>=1?ROAD_URL(x,y,z):null,overlay2:(x,y,z)=>layerMode>=2?LABEL_URL(x,y,z):null},
+  arcgis_wayback:{name:'ArcGIS Wayback',needUA:false,url:(x,y,z)=>`https://wayback-a.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/10/${z}/${y}/${x}`,overlay:(x,y,z)=>layerMode>=1?ROAD_URL(x,y,z):null,overlay2:(x,y,z)=>layerMode>=2?LABEL_URL(x,y,z):null}
 };
 let curSrc='arcgis_sat';
 function switchSource(){
@@ -564,17 +568,35 @@ function lT(x,y,z){
     i.src=bu
   }).catch(()=>{tF[c]=(tF[c]||0)+1;st.fl++;st.ld=Math.max(0,st.ld-1);lS.delete(c);uSt();render()});
   if(src.overlay){
-    const oc=`${curSrc}_ov/${z}/${x}/${y}`;
+    const oc=`${curSrc}_ov_m${layerMode}/${z}/${x}/${y}`;
     if(!tC[oc]&&(tF[oc]||0)<3&&!lS.has(oc)){
       lS.add(oc);
       const ou=src.overlay(x,y,z);
-      fetchTileUrl(ou,src.needUA).then(b=>{
-        const bu=URL.createObjectURL(b);
-        const i=new Image();
-        i.onload=()=>{tC[oc]=i;tF[oc]=0;lS.delete(oc);render();URL.revokeObjectURL(bu)};
-        i.onerror=()=>{tF[oc]=(tF[oc]||0)+1;lS.delete(oc);render();URL.revokeObjectURL(bu)};
-        i.src=bu
-      }).catch(()=>{tF[oc]=(tF[oc]||0)+1;lS.delete(oc)});
+      if(ou){
+        fetchTileUrl(ou,src.needUA).then(b=>{
+          const bu=URL.createObjectURL(b);
+          const i=new Image();
+          i.onload=()=>{tC[oc]=i;tF[oc]=0;lS.delete(oc);render();URL.revokeObjectURL(bu)};
+          i.onerror=()=>{tF[oc]=(tF[oc]||0)+1;lS.delete(oc);render();URL.revokeObjectURL(bu)};
+          i.src=bu
+        }).catch(()=>{tF[oc]=(tF[oc]||0)+1;lS.delete(oc)});
+      } else { tF[oc]=99; lS.delete(oc); }
+    }
+  }
+  if(src.overlay2){
+    const oc2=`${curSrc}_ov2_m${layerMode}/${z}/${x}/${y}`;
+    if(!tC[oc2]&&(tF[oc2]||0)<3&&!lS.has(oc2)){
+      lS.add(oc2);
+      const ou2=src.overlay2(x,y,z);
+      if(ou2){
+        fetchTileUrl(ou2,src.needUA).then(b=>{
+          const bu=URL.createObjectURL(b);
+          const i=new Image();
+          i.onload=()=>{tC[oc2]=i;tF[oc2]=0;lS.delete(oc2);render();URL.revokeObjectURL(bu)};
+          i.onerror=()=>{tF[oc2]=(tF[oc2]||0)+1;lS.delete(oc2);render();URL.revokeObjectURL(bu)};
+          i.src=bu
+        }).catch(()=>{tF[oc2]=(tF[oc2]||0)+1;lS.delete(oc2)});
+      } else { tF[oc2]=99; lS.delete(oc2); }
     }
   }
   return null
@@ -810,7 +832,12 @@ function toggleZoomLock(){
 }
 function spd2z(s){if(s<=0)return 18;if(s<=30)return 18-(s/30);if(s<=60)return 17-((s-30)/30);if(s<=90)return 16-((s-60)/30);if(s<=120)return 15-((s-90)/30);if(s<=160)return 14-((s-120)/40);return 13}
 function toggleLayer(){
-  tC={};render();
+  layerMode=(layerMode+1)%3;
+  const labels=['纯卫星','卫星+路网','卫星+路网+地名'];
+  const btn=document.getElementById('btn-layer');
+  btn.title=labels[layerMode];
+  btn.textContent=['🛰','🛣','🏷'][layerMode];
+  tC={};tF={};lS=new Set();render();
 }
 
 // ===== Canvas 交互（高德风格：拖动选点） =====
@@ -892,7 +919,8 @@ function render(){
       if(tx<0||ty<0||tx>=mT||ty>=mT)continue;
       const sx=tx*256-px0+vW/2;const sy=ty*256-py0+vH/2+offY;
       const i=lT(tx,ty,z);if(i)cx.drawImage(i,sx,sy,256,256);
-      const oc=`${curSrc}_ov/${z}/${tx}/${ty}`;if(tC[oc])cx.drawImage(tC[oc],sx,sy,256,256);
+      const oc=`${curSrc}_ov_m${layerMode}/${z}/${tx}/${ty}`;if(tC[oc])cx.drawImage(tC[oc],sx,sy,256,256);
+      const oc2=`${curSrc}_ov2_m${layerMode}/${z}/${tx}/${ty}`;if(tC[oc2])cx.drawImage(tC[oc2],sx,sy,256,256);
     }
   }
 
