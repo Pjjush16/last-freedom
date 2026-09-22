@@ -1077,6 +1077,25 @@ render();
 // 初始加载时更新一次选点坐标
 setTimeout(onMapMoveEnd,500);
 requestAnimationFrame(gameLoop);
+
+// ===== 可见性变化处理（Android切后台再回来时刷新瓦片） =====
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    tC={};tF={};lS=new Set();
+    uSt();render();
+  }
+});
+
+// ===== 路网overlay失败重试（5秒后自动重试一次） =====
+setInterval(()=>{
+  let retried=0;
+  for(const k in tF){
+    if((k.includes('_ov')&&tF[k]>=3&&tF[k]<99)){
+      tF[k]=0;retried++;
+    }
+  }
+  if(retried>0)render();
+},8000);
 </script>
 </body>
 </html>
