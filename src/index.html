@@ -492,7 +492,7 @@ async function fetchTileUrl(url,needsUA){
 // ===== 地图源配置 =====
 const TIANDITU_KEY='526d518941b3e52f37d0015698800f74';
 // 图层模式: 0=纯卫星 1=卫星+路网 2=卫星+路网+地名
-let layerMode=0;
+let layerMode=1;
 const ROAD_URL=(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/${z}/${y}/${x}`;
 const LABEL_URL=(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/${z}/${y}/${x}`;
 const MAP_SOURCES={
@@ -545,8 +545,8 @@ function setS(n){cStars=Math.max(0,n);for(let i=1;i<=7;i++)document.getElementBy
 // 逃离失败固定减一星，但驾驶加分依然生效。
 function calcRoundScore(){
   const s=roundMaxSpd;
-  if(s>=180) return 2;
-  if(s>=130) return 1;
+  if(s>=120) return 2;
+  if(s>=80) return 1;
   return 0;
 }
 function endChaseScore(delta){
