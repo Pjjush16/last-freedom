@@ -492,7 +492,7 @@ async function fetchTileUrl(url,needsUA){
 // ===== 地图源配置 =====
 const TIANDITU_KEY='526d518941b3e52f37d0015698800f74';
 // 图层模式: 0=纯卫星 1=卫星+路网 2=卫星+路网+地名
-let layerMode=1;
+let layerMode=0;
 const ROAD_URL=(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/${z}/${y}/${x}`;
 const LABEL_URL=(x,y,z)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/${z}/${y}/${x}`;
 const MAP_SOURCES={
@@ -537,8 +537,22 @@ setInterval(()=>{
 },4000);
 
 // ===== 星星 =====
-let cStars=0;
-function setS(n){cStars=n;for(let i=1;i<=7;i++)document.getElementById('s'+i).className=i<=n?'star on':'star'}
+let cStars=0, totalStars=0, roundMaxSpd=0;
+function setS(n){cStars=Math.max(0,n);for(let i=1;i<=7;i++)document.getElementById('s'+i).className=i<=cStars?'star on':'star'}
+
+// ===== 传统规则打分（放弃AI模型） =====
+// 驾驶越激进，星级越高。一次最多加两星。累加制。
+// 逃离失败固定减一星，但驾驶加分依然生效。
+function calcRoundScore(){
+  const s=roundMaxSpd;
+  if(s>=180) return 2;
+  if(s>=130) return 1;
+  return 0;
+}
+function endChaseScore(delta){
+  totalStars=Math.max(0,totalStars+delta);
+  setS(totalStars);
+}
 
 // ===== 地图瓦片 =====
 let cLat=39.9042,cLng=116.4074,z=15;
@@ -763,6 +777,7 @@ setInterval(()=>{
   if(gRun){
     gSpd=100+Math.random()*120;
     if(Math.random()<.12)gSpd=40+Math.random()*50;
+    if(gSpd>roundMaxSpd)roundMaxSpd=gSpd;
     ring.classList.add('navi');
     if(gSpd>150)ring.classList.add('danger');else ring.classList.remove('danger');
   } else {
@@ -772,8 +787,8 @@ setInterval(()=>{
   document.getElementById('spd-n').textContent=Math.round(gSpd);
 },200);
 
-// 星星更新
-setInterval(()=>{if(gRun){const e=(Date.now()-gST)/1000;setS(Math.min(7,Math.floor(e/15)+1))}},1000);
+// 星星更新（显示累计星级，追逐中不变化）
+setInterval(()=>{if(gRun){setS(totalStars)}},1000);
 
 function startChase(){
   if(sLat===null)return;
@@ -781,8 +796,8 @@ function startChase(){
   cLat=dLat+(Math.random()-.5)*.1;cLng=dLng+(Math.random()-.5)*.1;
   const d=hav(cLat,cLng,dLat,dLng);
   cRad=d*1.1;startDist=d;
-  gRun=true;gST=Date.now();
-  setS(1);startM();
+  gRun=true;gST=Date.now();roundMaxSpd=0;
+  setS(totalStars);startM();
   document.getElementById('dest-name').textContent=guessLocation(dLat,dLng);
   document.getElementById('dest-btn').textContent='放弃逃跑';
   document.getElementById('dest-btn').classList.add('stop');
@@ -795,7 +810,6 @@ function startChase(){
 function stopChase(){
   gRun=false;stopM();
   dSet=false;sLat=null;sLng=null;
-  setS(0);
 
   // 恢复选点模式
   pickMode=true;
@@ -942,7 +956,7 @@ function render(){
     const e=(Date.now()-gST)/1000;
     cRad*=(1-e*.0008);
     // 圈追上 = 被捕
-    if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});showOv('被捕','#ff5757','威胁圈已追上');stopChase();}
+    if(cRad<50){gRun=false;stopM();aM.currentTime=0;aM.play().catch(()=>{});const bs=calcRoundScore();endChaseScore(bs-1);showOv('被捕','#ff5757','威胁圈已追上 | 驾驶+'+bs+'星 失败-1星 | 累计'+totalStars+'星');stopChase();}
   }
 
   // 航拍准星（追逐模式下显示在画面中心偏上位置）
@@ -1061,11 +1075,11 @@ function gameLoop(){
       document.getElementById('sig-tmr').textContent=r;
       const p=Math.min(1,e/(SIG_T*.8));const tz=Math.max(3,oZoom-Math.floor(p*8));
       if(tz!==z){z=tz;tC={}}
-      if(e>=SIG_T){gRun=false;sigL=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});document.getElementById('sig').classList.remove('show');showOv('★ 消星成功 ★','#3ccf7a','目标丢失 60 秒');setS(0);stopChase();}
+      if(e>=SIG_T){gRun=false;sigL=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});document.getElementById('sig').classList.remove('show');const bs=calcRoundScore();endChaseScore(bs);showOv('★ 消星成功 ★','#3ccf7a','目标丢失 60 秒 | 驾驶+'+bs+'星 | 累计'+totalStars+'星');stopChase();}
     }
     // 到达目标
     const d2=hav(cLat,cLng,dLat,dLng);
-    if(d2<100&&!sigL){gRun=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});showOv('★ 消星成功 ★','#3ccf7a','到达目标 100m 范围');setS(0);stopChase();}
+    if(d2<100&&!sigL){gRun=false;stopM();sM.currentTime=0;sM.play().catch(()=>{});const bs=calcRoundScore();endChaseScore(bs);showOv('★ 消星成功 ★','#3ccf7a','到达目标 100m 范围 | 驾驶+'+bs+'星 | 累计'+totalStars+'星');stopChase();}
     render();
   }
   requestAnimationFrame(gameLoop);
